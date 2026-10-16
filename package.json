@@ -1,0 +1,8 @@
+{
+  "name": "mechanical-garage",
+  "private": true,
+  "description": "Mechanical Garage website: MechMate calculators, selection guides and machine design notes.",
+  "scripts": {
+    "test": "node --test mechmate/mechmate.test.js"
+  }
+}

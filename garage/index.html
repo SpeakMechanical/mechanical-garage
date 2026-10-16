@@ -1,0 +1,491 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Selection Guides</title>
+<meta name="description" content="Machine design guides with calculators: ball screws, bolts and nuts, bearings, fits, tolerances and GD&amp;T.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
+<link rel="stylesheet" href="../shared/site.css">
+<script src="../shared/site.js"></script>
+<header class="topbar"><div class="in">
+  <a class="brand" href="../"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="2.6"/><path d="M10 2.5v2.2M10 15.3v2.2M2.5 10h2.2M15.3 10h2.2M4.7 4.7l1.6 1.6M13.7 13.7l1.6 1.6M4.7 15.3l1.6-1.6M13.7 6.3l1.6-1.6"/><circle cx="10" cy="10" r="5.4"/></svg>Mechanical Garage</a>
+  <nav aria-label="Site">
+    <a href="../mechmate/">MechMate</a>
+    <a href="./" aria-current="page">Guides</a>
+    <a href="machine-design.html">Machine Design</a>
+  </nav>
+  <button class="theme-btn" type="button" aria-label="Switch between light and dark theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+</div></header>
+<main>
+  <div class="hero">
+    <div class="eyebrow">Design guides · 4 calculators</div>
+    <h1>Selection <em>guides</em></h1>
+    <p class="lede">Practical selection guides for the parts every machine needs, each with a working calculator. Units are mm, N, MPa and rpm unless stated. For 18 more calculators, open <a href="../mechmate/">MechMate</a>.</p>
+  <nav class="toc" aria-label="Contents">
+    <a href="#ballscrew">Ball screw selection</a>
+    <a href="#bolts">Bolts and nuts</a>
+    <a href="#bearings">Bearing selection</a>
+    <a href="#gdt">Tolerances and GD&amp;T</a>
+    <a href="machine-design.html">Machine Design →</a>
+  </nav>
+  <p class="note">The theory behind these guides (failure theories, fatigue, shafts, gears, joints, brakes, clutches and springs) is on the <a href="machine-design.html">Machine Design</a> page.</p>
+  </div>
+
+  <!-- ============================== BALL SCREW ============================== -->
+  <section class="guide" id="ballscrew">
+    <div class="kicker">Guide 1</div>
+    <h2>How to select a ball screw</h2>
+    <p>A ball screw turns motor rotation into linear motion at about 90% efficiency. Selection is a loop: guess a lead and diameter, then check them against life, critical speed, buckling, DN limit and motor torque. Light axes are almost never limited by life; they fail on critical speed first.</p>
+
+    <h3>Step 1. Write down the duty</h3>
+    <ul>
+      <li>Moving mass <i>m</i> (table + workpiece + fixtures), orientation (horizontal or vertical).</li>
+      <li>Maximum speed <i>V</i><sub>max</sub>, acceleration time <i>t</i><sub>a</sub>, stroke, and how many strokes per minute.</li>
+      <li>External axial force (cutting, pressing), guide friction coefficient μ (about 0.003–0.01 for profile rail guides, 0.1–0.2 for plain slides).</li>
+      <li>Positioning accuracy and required life in hours.</li>
+    </ul>
+
+    <h3>Step 2. Pick the lead</h3>
+    <div class="eq">lead l ≥ V_max × 60 / N_max        (l in mm, V in mm/s, N_max = motor max rpm)</div>
+    <p>A shorter lead gives more thrust and resolution per motor rev, but a higher screw speed for the same table speed. Common leads: 2, 4, 5, 10, 16, 20, 25, 32 mm.</p>
+
+    <h3>Step 3. Axial load in each phase of the move</h3>
+    <div class="eq">Horizontal:  base = μ·m·g + F_ext        Vertical:  base = m·g + F_ext
+Accelerating  F1 = base + m·a
+Constant      F2 = base
+Decelerating  F3 = base − m·a           (a = V_max / t_a)</div>
+    <p>Then the mean (cubic) load, weighted by the distance travelled in each phase:</p>
+    <div class="eq">F_m = ( (F1³·s1 + F2³·s2 + F3³·s3) / (s1 + s2 + s3) )^(1/3)</div>
+
+    <h3>Step 4. Rated life</h3>
+    <div class="eq">L (rev) = ( C_a / (f_w · F_m) )³ × 10⁶
+L_h (hours) = L / (60 · n_m)          n_m = mean screw speed, rpm</div>
+    <p><i>C</i><sub>a</sub> is the basic dynamic load rating from the catalogue. Load factor <i>f</i><sub>w</sub>: 1.0–1.2 smooth motion, 1.2–1.5 normal, 1.5–2.0 with shock and vibration. Typical targets: machine tools 20,000 h, industrial machines 10,000 h, automation and measuring equipment 15,000 h.</p>
+
+    <h3>Step 5. Critical (whirling) speed</h3>
+    <div class="eq">N_c = λ · d_r / L_b² × 10⁷   (rpm, already includes a 0.8 safety factor)</div>
+    <p><i>d</i><sub>r</sub> is the root (minor) diameter and <i>L</i><sub>b</sub> the distance between supports. Keep the operating speed below <i>N</i><sub>c</sub>. If it fails, use a fixed–supported or fixed–fixed mounting, a larger diameter, a longer lead, or a rotating nut.</p>
+
+    <h3>Step 6. Buckling</h3>
+    <div class="eq">P_buckle = η · d_r⁴ / L_a² × 10⁴   (N, includes a 0.5 safety factor)</div>
+    <p><i>L</i><sub>a</sub> is the distance from the nut (at its worst position) to the bearing that takes the thrust. Only compressive loads buckle the screw, but check the peak load anyway.</p>
+    <div class="tw"><table>
+      <tr><th>Mounting</th><th class="n">λ (critical speed)</th><th class="n">η (buckling)</th><th>Typical use</th></tr>
+      <tr><td>Fixed – free</td><td class="n">3.4</td><td class="n">1.3</td><td>Short vertical axes, cheap kits</td></tr>
+      <tr><td>Supported – supported</td><td class="n">9.7</td><td class="n">5.0</td><td>Rarely; low cost</td></tr>
+      <tr><td>Fixed – supported</td><td class="n">15.1</td><td class="n">10.0</td><td>Most CNC routers and printers (BK + BF blocks)</td></tr>
+      <tr><td>Fixed – fixed</td><td class="n">21.9</td><td class="n">20.0</td><td>Long, fast or stiff axes; can be pre-tensioned</td></tr>
+    </table></div>
+    <p class="note">Fixed = a pair of angular contact bearings that take thrust both ways. Supported = a single deep groove bearing free to float axially.</p>
+
+    <h3>Step 7. DN value and accuracy grade</h3>
+    <div class="eq">DN = d₀ × n ≤ 70,000   (rolled screws; precision ground screws often 100,000–160,000)</div>
+    <p>Accuracy grade: rolled C7 (±0.05 mm per 300 mm) is fine for routers, printers and vending machines. Ground C5 or better for machine tools and metrology. Add preload (double nut or oversize balls) only when you need zero backlash; it adds friction torque and heat.</p>
+
+    <h3>Step 8. Motor torque</h3>
+    <div class="eq">T_load = F_max · l / (2π · η)        η ≈ 0.9
+T_accel = (J_screw + J_coupling + J_motor) · α     α = 2π · n / (60 · t_a)
+J_screw = π · ρ · L · d₀⁴ / 32         ρ = 7850 kg/m³</div>
+    <p>The table mass is already in <i>F</i><sub>max</sub> through the <i>m·a</i> term, so do not add its reflected inertia twice. Size the motor so the total is below its torque at the operating speed with a margin of 1.5–2 for steppers.</p>
+
+    <div class="calc" id="bs-calc">
+      <h3>Ball screw calculator</h3>
+      <div class="fields">
+        <label>Moving mass, kg<input id="bs-m" type="number" value="30" step="any"></label>
+        <label>Orientation<select id="bs-or"><option value="h">Horizontal</option><option value="v">Vertical</option></select></label>
+        <label>Guide friction μ<input id="bs-mu" type="number" value="0.01" step="any"></label>
+        <label>External axial force, N<input id="bs-fe" type="number" value="0" step="any"></label>
+        <label>Max speed, mm/s<input id="bs-v" type="number" value="500" step="any"></label>
+        <label>Accel time, s<input id="bs-ta" type="number" value="0.1" step="any"></label>
+        <label>Stroke, mm<input id="bs-st" type="number" value="600" step="any"></label>
+        <label>Strokes per minute<input id="bs-spm" type="number" value="10" step="any"></label>
+        <label>Motor max speed, rpm<input id="bs-nmax" type="number" value="3000" step="any"></label>
+        <label>Lead, mm<input id="bs-l" type="number" value="10" step="any"></label>
+        <label>Nominal diameter d₀, mm<input id="bs-d0" type="number" value="16" step="any"></label>
+        <label>Root diameter d<sub>r</sub>, mm<input id="bs-dr" type="number" value="12.9" step="any"></label>
+        <label>Screw length between supports, mm<input id="bs-lb" type="number" value="800" step="any"></label>
+        <label>Mounting<select id="bs-mt"><option value="3.4,1.3">Fixed – free</option><option value="9.7,5">Supported – supported</option><option value="15.1,10" selected>Fixed – supported</option><option value="21.9,20">Fixed – fixed</option></select></label>
+        <label>Dynamic rating C<sub>a</sub>, N<input id="bs-ca" type="number" value="5000" step="any"></label>
+        <label>Load factor f<sub>w</sub><input id="bs-fw" type="number" value="1.2" step="any"></label>
+        <label>Target life, hours<input id="bs-lh" type="number" value="20000" step="any"></label>
+      </div>
+      <div class="out" id="bs-out"></div>
+      <div class="msg" id="bs-msg"></div>
+    </div>
+    <p class="note">The defaults are a 16 mm, 10 mm lead rolled screw on a 30 kg table. Note that it passes on life by a huge margin but sits right at its critical speed: shorten the span, go fixed–fixed, or move to a 20 mm screw. Take <i>C</i><sub>a</sub> and the root diameter from your supplier's catalogue; they vary between makers.</p>
+  </section>
+
+  <!-- ============================== BOLTS ============================== -->
+  <section class="guide" id="bolts">
+    <div class="kicker">Guide 2</div>
+    <h2>Bolts and nuts</h2>
+    <p>A bolted joint works by clamping. The bolt is a spring stretched by tightening; the preload squeezes the parts together, and the joint carries load through that clamp force and the friction it creates. Get the preload right and most of the external load never reaches the bolt.</p>
+
+    <h3>Property classes (ISO 898-1)</h3>
+    <div class="tw"><table>
+      <tr><th>Class</th><th class="n">UTS, MPa</th><th class="n">Yield, MPa</th><th class="n">Proof stress, MPa</th><th>Matching nut</th><th>Use</th></tr>
+      <tr><td>4.6</td><td class="n">400</td><td class="n">240</td><td class="n">225</td><td>Class 4 / 5</td><td>Non-structural, mild steel</td></tr>
+      <tr><td>8.8</td><td class="n">800</td><td class="n">640</td><td class="n">580</td><td>Class 8</td><td>General machine building (default)</td></tr>
+      <tr><td>10.9</td><td class="n">1000</td><td class="n">940</td><td class="n">830</td><td>Class 10</td><td>High clamp force, compact joints</td></tr>
+      <tr><td>12.9</td><td class="n">1200</td><td class="n">1100</td><td class="n">970</td><td>Class 12</td><td>Socket head cap screws, high-strength</td></tr>
+      <tr><td>A2-70 / A4-70</td><td class="n">700</td><td class="n">450</td><td class="n">—</td><td>A2 / A4</td><td>Stainless: food contact, wet areas (A4 for chlorides)</td></tr>
+    </table></div>
+    <p class="note">Values are for d ≤ 16 mm; 8.8 is slightly higher above M16. The class reads as UTS/100 and yield/UTS: 8.8 means 800 MPa UTS and yield at 0.8 × 800.</p>
+
+    <h3>Metric coarse thread data</h3>
+    <div class="tw"><table>
+      <tr><th>Size</th><th class="n">Pitch</th><th class="n">Stress area A<sub>s</sub>, mm²</th><th class="n">Tap drill</th><th class="n">Clearance (fine / medium)</th></tr>
+      <tr><td>M3</td><td class="n">0.5</td><td class="n">5.03</td><td class="n">2.5</td><td class="n">3.2 / 3.4</td></tr>
+      <tr><td>M4</td><td class="n">0.7</td><td class="n">8.78</td><td class="n">3.3</td><td class="n">4.3 / 4.5</td></tr>
+      <tr><td>M5</td><td class="n">0.8</td><td class="n">14.2</td><td class="n">4.2</td><td class="n">5.3 / 5.5</td></tr>
+      <tr><td>M6</td><td class="n">1.0</td><td class="n">20.1</td><td class="n">5.0</td><td class="n">6.4 / 6.6</td></tr>
+      <tr><td>M8</td><td class="n">1.25</td><td class="n">36.6</td><td class="n">6.8</td><td class="n">8.4 / 9.0</td></tr>
+      <tr><td>M10</td><td class="n">1.5</td><td class="n">58.0</td><td class="n">8.5</td><td class="n">10.5 / 11</td></tr>
+      <tr><td>M12</td><td class="n">1.75</td><td class="n">84.3</td><td class="n">10.2</td><td class="n">13 / 13.5</td></tr>
+      <tr><td>M16</td><td class="n">2.0</td><td class="n">157</td><td class="n">14.0</td><td class="n">17 / 17.5</td></tr>
+      <tr><td>M20</td><td class="n">2.5</td><td class="n">245</td><td class="n">17.5</td><td class="n">21 / 22</td></tr>
+      <tr><td>M24</td><td class="n">3.0</td><td class="n">353</td><td class="n">21.0</td><td class="n">25 / 26</td></tr>
+    </table></div>
+
+    <h3>Preload and tightening torque</h3>
+    <div class="eq">Proof load   F_p = A_s × proof stress
+Preload      F_i = 0.75 F_p   (reusable joints)    0.90 F_p (permanent)
+Torque       T = K · F_i · d</div>
+    <p>The nut factor <i>K</i> carries all the friction uncertainty: about 0.20 for plain dry steel, 0.15–0.18 for zinc plated or lightly oiled, 0.12 with moly grease. A torque wrench gives ±25% preload scatter at best, which is why the design checks below keep margin.</p>
+
+    <h3>Tension joints: separation and bolt load</h3>
+    <div class="eq">Joint constant  C = k_b / (k_b + k_m)      ≈ 0.2–0.3 for steel parts with a steel bolt
+Bolt load       F_b = F_i + C · P
+Separation      happens when P ≥ F_i / (1 − C)</div>
+    <p>Only the fraction <i>C</i> of the external load <i>P</i> adds to the bolt; the rest unloads the clamped parts. This is why a well-preloaded bolt survives fatigue: it sees a small stress swing.</p>
+
+    <h3>Shear joints: let friction carry it</h3>
+    <div class="eq">Slip resistance per bolt = μ_s · F_i · (number of friction faces)        μ_s ≈ 0.2 clean machined steel</div>
+    <p>Design machine joints so friction carries the shear. If the joint slips, the bolt bends and loosens. Where position matters, add dowel pins (H7/m6) and let the bolts only clamp.</p>
+
+    <h3>Thread engagement, locking, and practice</h3>
+    <ul>
+      <li>Engagement length: steel nut 0.8<i>d</i>; tapped steel 1.0–1.5<i>d</i>; cast iron 1.5<i>d</i>; aluminium 2<i>d</i> (or use a helicoil insert).</li>
+      <li>Locking: correct preload is the main defence. Then wedge-locking washers or a medium threadlocker (e.g. Loctite 243) for vibration. Split spring washers do not stop vibration loosening.</li>
+      <li>Use a hardened washer under the head on aluminium or plastic so the surface does not embed and lose preload.</li>
+      <li>Long, thin bolts hold preload better than short fat ones: more stretch for the same embedding loss.</li>
+      <li>In vending and food machines use A2 or A4 stainless, and avoid mixing stainless bolts in aluminium where wet (galvanic corrosion), or isolate them.</li>
+    </ul>
+
+    <div class="calc">
+      <h3>Bolt calculator</h3>
+      <div class="fields">
+        <label>Size<select id="bt-size"></select></label>
+        <label>Property class<select id="bt-cls"><option value="225">4.6</option><option value="580" selected>8.8</option><option value="830">10.9</option><option value="970">12.9</option></select></label>
+        <label>Preload, % of proof<input id="bt-pct" type="number" value="75" step="any"></label>
+        <label>Nut factor K<input id="bt-k" type="number" value="0.2" step="any"></label>
+        <label>Number of bolts<input id="bt-n" type="number" value="4" step="1"></label>
+        <label>Total tension load, N<input id="bt-p" type="number" value="8000" step="any"></label>
+        <label>Total shear load, N<input id="bt-v" type="number" value="3000" step="any"></label>
+        <label>Joint constant C<input id="bt-c" type="number" value="0.25" step="any"></label>
+        <label>Slip coefficient μ<sub>s</sub><input id="bt-mu" type="number" value="0.2" step="any"></label>
+      </div>
+      <div class="out" id="bt-out"></div>
+    </div>
+  </section>
+
+  <!-- ============================== BEARINGS ============================== -->
+  <section class="guide" id="bearings">
+    <div class="kicker">Guide 3</div>
+    <h2>Bearing selection</h2>
+    <p>Choose the type from the loads and space you have, then size it for life, then choose the fits, clearance, seals and lubrication.</p>
+
+    <h3>Step 1. Choose the type</h3>
+    <div class="tw"><table>
+      <tr><th>Type</th><th>Radial</th><th>Axial</th><th>Speed</th><th>Notes</th></tr>
+      <tr><td>Deep groove ball (60xx, 62xx)</td><td>Good</td><td>Moderate, both ways</td><td>High</td><td>The default. Cheap, sealed versions (2RS, ZZ)</td></tr>
+      <tr><td>Angular contact ball (70xx, 72xx)</td><td>Good</td><td>High, one way</td><td>High</td><td>Use in pairs (back-to-back for stiffness); ball screw fixed end</td></tr>
+      <tr><td>Cylindrical roller (NU, N, NJ)</td><td>Very high</td><td>None / little</td><td>High</td><td>Floating end of a shaft</td></tr>
+      <tr><td>Tapered roller (302xx, 322xx)</td><td>Very high</td><td>High, one way</td><td>Medium</td><td>Pairs, adjustable preload; wheel hubs, gearboxes</td></tr>
+      <tr><td>Spherical roller (222xx)</td><td>Very high</td><td>Moderate</td><td>Medium</td><td>Tolerates 1–2° misalignment; heavy machinery</td></tr>
+      <tr><td>Self-aligning ball (12xx)</td><td>Moderate</td><td>Light</td><td>High</td><td>Long shafts that deflect</td></tr>
+      <tr><td>Needle roller</td><td>High</td><td>None</td><td>Medium</td><td>Very small radial section</td></tr>
+      <tr><td>Thrust ball (511xx)</td><td>None</td><td>High, one way</td><td>Low</td><td>Pure axial, turntables</td></tr>
+    </table></div>
+
+    <h3>Step 2. Equivalent dynamic load</h3>
+    <div class="eq">P = X · F_r + Y · F_a
+Deep groove ball:  if F_a / F_r ≤ e  →  P = F_r
+                   else               →  P = 0.56 F_r + Y · F_a</div>
+    <p><i>e</i> and <i>Y</i> depend on f₀·F<sub>a</sub>/C₀ (f₀ is the calculation factor in the catalogue, about 12–16):</p>
+    <div class="tw"><table>
+      <tr><th class="n">f₀·F<sub>a</sub>/C₀</th><td class="n">0.172</td><td class="n">0.345</td><td class="n">0.689</td><td class="n">1.03</td><td class="n">1.38</td><td class="n">2.07</td><td class="n">3.45</td><td class="n">5.17</td><td class="n">6.89</td></tr>
+      <tr><th class="n">e</th><td class="n">0.19</td><td class="n">0.22</td><td class="n">0.26</td><td class="n">0.28</td><td class="n">0.30</td><td class="n">0.34</td><td class="n">0.38</td><td class="n">0.42</td><td class="n">0.44</td></tr>
+      <tr><th class="n">Y</th><td class="n">2.30</td><td class="n">1.99</td><td class="n">1.71</td><td class="n">1.55</td><td class="n">1.45</td><td class="n">1.31</td><td class="n">1.15</td><td class="n">1.04</td><td class="n">1.00</td></tr>
+    </table></div>
+    <p class="note">Normal internal clearance. Other bearing types have their own X, Y in the catalogue.</p>
+
+    <h3>Step 3. Basic rating life</h3>
+    <div class="eq">L₁₀ = (C / P)^p       million revolutions,   p = 3 ball, 10/3 roller
+L₁₀h = 10⁶ / (60 · n) × L₁₀      hours
+L_nm = a₁ · L₁₀              a₁ = 1 (90% reliability), 0.64 (95%), 0.25 (99%)</div>
+    <div class="tw"><table>
+      <tr><th>Machine</th><th class="n">L₁₀h target, h</th></tr>
+      <tr><td>Household appliances, occasional use</td><td class="n">300 – 3,000</td></tr>
+      <tr><td>Short or intermittent use (hand tools, lifts)</td><td class="n">3,000 – 8,000</td></tr>
+      <tr><td>8 hours a day, not always fully used (gearboxes, vending machines)</td><td class="n">10,000 – 25,000</td></tr>
+      <tr><td>8 hours a day, fully used (machine tools, conveyors)</td><td class="n">20,000 – 30,000</td></tr>
+      <tr><td>Continuous 24 h (fans, pumps, compressors)</td><td class="n">40,000 – 60,000</td></tr>
+    </table></div>
+
+    <h3>Step 4. Static check</h3>
+    <div class="eq">Deep groove ball:  P₀ = 0.6 F_r + 0.5 F_a   (but not less than F_r)
+s₀ = C₀ / P₀  ≥ 1 normal,  ≥ 2 shock or quiet running,  ≥ 0.5 slow smooth rotation</div>
+
+    <h3>Step 5. Fits, arrangement, lubrication</h3>
+    <ul>
+      <li>The ring that rotates relative to the load gets the interference fit. Rotating shaft: shaft k5/k6 (light loads j6, heavy m6), housing H7. Rotating housing (wheel hubs): housing N7/P7, shaft g6/h6.</li>
+      <li>Locate one bearing axially on both rings (fixed end) and let the other float, so thermal growth does not load the bearings.</li>
+      <li>Shaft shoulder radius must be smaller than the bearing chamfer; check the catalogue abutment diameters.</li>
+      <li>Sealed and greased-for-life (2RS) suits most garage projects. Use ZZ shields where speed is high and dirt is low. Food machines need food-grade (NSF H1) grease and stainless bearings where washed down.</li>
+      <li>Speed: keep below the catalogue limiting speed; for sealed bearings the seal speed limit is usually lower.</li>
+    </ul>
+
+    <div class="calc">
+      <h3>Bearing life calculator</h3>
+      <div class="fields">
+        <label>Load model<select id="br-type"><option value="dg">Deep groove ball (X, Y from table)</option><option value="ball">Ball, P entered</option><option value="roller">Roller, P entered</option></select></label>
+        <label>Radial load F<sub>r</sub>, N<input id="br-fr" type="number" value="1500" step="any"></label>
+        <label>Axial load F<sub>a</sub>, N<input id="br-fa" type="number" value="500" step="any"></label>
+        <label>Equivalent load P, N (if entered)<input id="br-p" type="number" value="1650" step="any"></label>
+        <label>Speed, rpm<input id="br-n" type="number" value="1500" step="any"></label>
+        <label>Dynamic rating C, N<input id="br-c" type="number" value="14800" step="any"></label>
+        <label>Static rating C₀, N<input id="br-c0" type="number" value="7800" step="any"></label>
+        <label>Calculation factor f₀<input id="br-f0" type="number" value="14" step="any"></label>
+        <label>Reliability<select id="br-rel"><option value="1">90%</option><option value="0.64">95%</option><option value="0.55">96%</option><option value="0.47">97%</option><option value="0.37">98%</option><option value="0.25">99%</option></select></label>
+        <label>Target life, hours<input id="br-lh" type="number" value="20000" step="any"></label>
+      </div>
+      <div class="out" id="br-out"></div>
+    </div>
+    <p class="note">Defaults: a 6205 deep groove bearing (C 14.8 kN, C₀ 7.8 kN, f₀ 14). Check the ratings for the exact bearing in your supplier's catalogue.</p>
+  </section>
+
+  <!-- ============================== GD&T ============================== -->
+  <section class="guide" id="gdt">
+    <div class="kicker">Guide 4</div>
+    <h2>Tolerances and GD&amp;T</h2>
+    <p>A tolerance is a promise about what the part must do. Tighten only the features that locate, seal, slide or carry load; give everything else a general tolerance. Each step tighter roughly doubles machining cost.</p>
+
+    <h3>General tolerances</h3>
+    <p>Put one note in the title block, such as <code>ISO 2768-mK</code>: medium linear tolerances (e.g. ±0.1 for 6–30 mm, ±0.2 for 30–120 mm, ±0.3 for 120–400 mm) and class K geometric tolerances. Then only dimension the critical features explicitly.</p>
+
+    <h3>Fits (ISO 286, hole basis)</h3>
+    <p>Hole basis means the hole is H (lower deviation zero) and you change the shaft letter. Reamers and boring tools come in H7, which keeps tooling simple.</p>
+    <div class="tw"><table>
+      <tr><th>Fit</th><th>Type</th><th>Use</th></tr>
+      <tr><td>H7/f7</td><td>Running clearance</td><td>Plain bearings, shafts turning in bushes</td></tr>
+      <tr><td>H7/g6</td><td>Close sliding</td><td>Sliding gears, pistons, guide pins</td></tr>
+      <tr><td>H7/h6</td><td>Locating clearance</td><td>Spigots, parts assembled by hand that must line up</td></tr>
+      <tr><td>H7/k6</td><td>Transition</td><td>Bearing inner rings (light load), gears and pulleys with a key</td></tr>
+      <tr><td>H7/n6</td><td>Transition / light interference</td><td>Firm location, assembly with a mallet or press</td></tr>
+      <tr><td>H7/p6</td><td>Light press</td><td>Bushes, dowels into steel, parts that must not move</td></tr>
+      <tr><td>H7/s6</td><td>Medium drive</td><td>Permanent assemblies, shrink fits, torque without keys</td></tr>
+    </table></div>
+    <div class="calc">
+      <h3>Fit calculator</h3>
+      <div class="fields">
+        <label>Nominal size, mm<input id="ft-d" type="number" value="25" step="any"></label>
+        <label>Fit<select id="ft-f"><option>H7/f7</option><option>H7/g6</option><option selected>H7/h6</option><option>H7/k6</option><option>H7/n6</option><option>H7/p6</option><option>H7/s6</option></select></label>
+      </div>
+      <div class="out" id="ft-out"></div>
+      <div class="msg" id="ft-msg"></div>
+    </div>
+
+    <h3>The GD&amp;T symbols</h3>
+    <div class="tw"><table>
+      <tr><th>Group</th><th>Characteristic</th><th>Datum needed?</th><th>What it controls</th></tr>
+      <tr><td rowspan="4">Form</td><td>⏤ Straightness</td><td>No</td><td>A line or axis stays inside a zone</td></tr>
+      <tr><td>⏥ Flatness</td><td>No</td><td>A surface lies between two parallel planes</td></tr>
+      <tr><td>○ Circularity</td><td>No</td><td>Each cross-section is round</td></tr>
+      <tr><td>⌭ Cylindricity</td><td>No</td><td>The whole surface lies between two coaxial cylinders</td></tr>
+      <tr><td rowspan="2">Profile</td><td>⌒ Profile of a line</td><td>Optional</td><td>A 2D curve against its true shape</td></tr>
+      <tr><td>⌓ Profile of a surface</td><td>Optional</td><td>Any 3D surface; the most versatile control</td></tr>
+      <tr><td rowspan="3">Orientation</td><td>⟂ Perpendicularity</td><td>Yes</td><td>90° to a datum</td></tr>
+      <tr><td>∥ Parallelism</td><td>Yes</td><td>Parallel to a datum</td></tr>
+      <tr><td>∠ Angularity</td><td>Yes</td><td>Any other angle to a datum</td></tr>
+      <tr><td>Location</td><td>⌖ Position</td><td>Yes</td><td>Where holes, pins and slots are, relative to datums</td></tr>
+      <tr><td rowspan="2">Runout</td><td>↗ Circular runout</td><td>Yes</td><td>Wobble of each cross-section when rotated on the datum axis</td></tr>
+      <tr><td>⌰ Total runout</td><td>Yes</td><td>Wobble of the whole surface; shafts with bearings and seals</td></tr>
+    </table></div>
+    <p class="note">Concentricity and symmetry were removed from ASME Y14.5-2018. Use position or runout instead.</p>
+
+    <h3>Datums: tell the inspector how the part sits</h3>
+    <p>Datums A, B, C follow the 3-2-1 rule: the primary datum touches at three points (stops tilting), the secondary at two (stops rotating), the tertiary at one (stops sliding). Choose datums that are the surfaces the part actually mounts on in the assembly, not the ones easiest to measure.</p>
+
+    <h3>Position and the bonus tolerance</h3>
+    <div class="eq">±x / ±y tolerance gives a square zone; position gives a round one.
+Equivalent position zone  Ø = 2 · √(Δx² + Δy²)     e.g. ±0.1 square → Ø0.28</div>
+    <p>The round zone has 57% more area than the square that fits inside it, so good parts are no longer rejected for being off on a diagonal. With the MMC modifier Ⓜ, the zone grows as the hole moves away from its smallest size: a Ø6.6 +0.1/0 hole with position Ø0.2 Ⓜ may be off by Ø0.3 when it measures Ø6.7.</p>
+    <div class="eq">Floating fasteners (clearance holes in both parts):   T = H − F
+Fixed fastener (tapped in one part):                   T = (H − F) / 2  for each part
+   H = hole size at MMC (smallest), F = fastener max diameter, T = position tolerance Ø</div>
+    <p>Example: M6 bolt through Ø6.6 holes in two plates, floating: T = 6.6 − 6.0 = Ø0.6 for each plate. If one plate is tapped instead, each part gets Ø0.3.</p>
+
+    <h3>Tolerance stack-up</h3>
+    <p>Walk the loop of dimensions from one side of the gap to the other. Dimensions that increase the gap are +, those that reduce it are −. Worst case adds every tolerance and guarantees assembly; RSS (root sum square) assumes random variation and is realistic once there are four or more parts in production.</p>
+    <div class="eq">Gap nominal = Σ (± dimensions)
+Worst case  = ± Σ tᵢ          RSS = ± √(Σ tᵢ²)</div>
+    <div class="calc">
+      <h3>Stack-up calculator</h3>
+      <label>One dimension per line: sign, nominal, ± tolerance<textarea id="sk-in">+ 50.00 0.10
+- 20.00 0.05
+- 20.00 0.05
+- 9.50 0.08</textarea></label>
+      <div class="out" id="sk-out"></div>
+      <div class="msg" id="sk-msg"></div>
+    </div>
+    <p class="note">Default: a 50 mm housing with two 20 mm spacers and a 9.5 mm part inside. The gap must stay positive.</p>
+  </section>
+
+  <p class="note section-title">Formulas follow common catalogue practice (THK, NSK, SKF) and ISO 898-1, ISO 281, ISO 286. Ratings vary by maker: use your supplier's catalogue for final numbers, and have anything safety-critical checked by a qualified engineer. </p>
+</main>
+<footer class="site"><div class="in">
+  <span>Mechanical Garage · machine design tools and guides</span>
+  <div class="links"><a href="../mechmate/">MechMate</a><a href="./">Guides</a><a href="machine-design.html">Machine Design</a><a href="../personal/">Projects</a></div>
+</div></footer>
+<script>
+
+/* ---------- Ball screw ---------- */
+const bsIds = ["bs-m","bs-or","bs-mu","bs-fe","bs-v","bs-ta","bs-st","bs-spm","bs-nmax","bs-l","bs-d0","bs-dr","bs-lb","bs-mt","bs-ca","bs-fw","bs-lh"];
+function ballScrew() {
+  const m = num("bs-m"), mu = num("bs-mu"), fe = num("bs-fe"), v = num("bs-v"), ta = num("bs-ta"), st = num("bs-st"),
+        spm = num("bs-spm"), nmax = num("bs-nmax"), l = num("bs-l"), d0 = num("bs-d0"), dr = num("bs-dr"), lb = num("bs-lb"),
+        ca = num("bs-ca"), fw = num("bs-fw"), lhT = num("bs-lh");
+  const [lam, eta] = $("bs-mt").value.split(",").map(Number);
+  const g = 9.81, a = v / 1000 / ta;                       // m/s²
+  const base = ($("bs-or").value === "v" ? m * g : mu * m * g) + fe;
+  const F1 = base + m * a, F2 = base, F3 = Math.abs(base - m * a);
+  let s1 = v * ta / 2, s3 = s1, s2 = st - s1 - s3, msg = "";
+  if (s2 < 0) { s1 = s3 = st / 2; s2 = 0; msg = "Stroke is too short to reach max speed at this acceleration; loads assume a triangular profile."; }
+  const Fm = Math.cbrt((F1 ** 3 * s1 + F2 ** 3 * s2 + F3 ** 3 * s3) / st);
+  const Fmax = Math.max(F1, F2, F3);
+  const leadMin = v * 60 / nmax, n = v * 60 / l;
+  const Lrev = (ca / (fw * Fm)) ** 3 * 1e6;
+  const revPerMin = st / l * spm, Lh = Lrev / (revPerMin * 60);
+  const Nc = lam * dr / lb ** 2 * 1e7, Pb = eta * dr ** 4 / lb ** 2 * 1e4, DN = d0 * n;
+  const Tload = Fmax * l / 1000 / (2 * Math.PI * 0.9);     // N·m
+  const Js = Math.PI * 7850 * (lb / 1000) * (d0 / 1000) ** 4 / 32;
+  const alpha = 2 * Math.PI * n / 60 / ta, Ta = Js * alpha;
+  $("bs-out").innerHTML =
+    card("Minimum lead for motor speed", fmt(leadMin, 2) + " mm", l >= leadMin ? "ok" : "bad", l >= leadMin ? "Lead OK" : "Lead too short: motor would exceed max rpm") +
+    card("Screw speed at V<sub>max</sub>", fmt(n) + " rpm") +
+    card("Axial load: accel / const / decel", `${fmt(F1)} / ${fmt(F2)} / ${fmt(F3)} N`) +
+    card("Mean load F<sub>m</sub>", fmt(Fm, 1) + " N") +
+    card("Rated life", Lh > 1e7 ? ">10,000,000 h" : fmt(Lh) + " h", Lh >= lhT ? "ok" : "bad", `${fmt(Lrev * l / 1e6)} km of travel`) +
+    card("Critical speed N<sub>c</sub>", fmt(Nc) + " rpm", n <= Nc * 0.9 ? "ok" : n <= Nc ? "warn" : "bad", n <= Nc * 0.9 ? "OK" : n <= Nc ? "Within 10% of the limit" : "Too fast: whirling") +
+    card("Buckling load", fmt(Pb) + " N", Pb >= Fmax ? "ok" : "bad", Pb >= Fmax ? `${fmt(Pb / Fmax, 1)}× peak load` : "Below peak load") +
+    card("DN value", fmt(DN), DN <= 70000 ? "ok" : "warn", DN <= 70000 ? "OK for rolled screws" : "Above 70,000: check the maker's limit") +
+    card("Drive torque (load)", fmt(Tload, 3) + " N·m") +
+    card("Accel torque (screw only)", fmt(Ta, 3) + " N·m", "", "Add motor + coupling inertia") +
+    card("Total torque", fmt(Tload + Ta, 3) + " N·m", "", "Size the motor 1.5–2× this");
+  $("bs-msg").textContent = msg;
+}
+bind(bsIds, ballScrew);
+
+/* ---------- Bolts ---------- */
+const sizes = {M3:[3,5.03],M4:[4,8.78],M5:[5,14.2],M6:[6,20.1],M8:[8,36.6],M10:[10,58.0],M12:[12,84.3],M16:[16,157],M20:[20,245],M24:[24,353]};
+$("bt-size").innerHTML = Object.keys(sizes).map(s => `<option${s === "M8" ? " selected" : ""}>${s}</option>`).join("");
+function bolts() {
+  const [d, As] = sizes[$("bt-size").value], Sp = num("bt-cls"), pct = num("bt-pct") / 100, K = num("bt-k"),
+        nb = Math.max(1, Math.round(num("bt-n"))), P = num("bt-p") / nb, V = num("bt-v") / nb, C = num("bt-c"), mu = num("bt-mu");
+  const Fp = As * Sp, Fi = pct * Fp, T = K * Fi * d / 1000;
+  const Fb = Fi + C * P, Psep = Fi / (1 - C), slip = mu * Fi;
+  $("bt-out").innerHTML =
+    card("Proof load", fmt(Fp) + " N") +
+    card("Preload F<sub>i</sub>", fmt(Fi) + " N") +
+    card("Tightening torque", fmt(T, 1) + " N·m") +
+    card("Bolt load with tension", fmt(Fb) + " N", Fb <= Fp ? "ok" : "bad", Fb <= Fp ? `${fmt(Fb / Fp * 100)}% of proof` : "Exceeds proof load") +
+    card("Separation margin", fmt(Psep / Math.max(P, 1e-9), 2) + "×", Psep / P >= 1.5 ? "ok" : Psep / P >= 1 ? "warn" : "bad", `Separates at ${fmt(Psep)} N per bolt`) +
+    card("Slip margin (shear)", fmt(slip / Math.max(V, 1e-9), 2) + "×", slip / V >= 1.5 ? "ok" : slip / V >= 1 ? "warn" : "bad", `Friction holds ${fmt(slip)} N per bolt`);
+}
+bind(["bt-size","bt-cls","bt-pct","bt-k","bt-n","bt-p","bt-v","bt-c","bt-mu"], bolts);
+
+/* ---------- Bearings ---------- */
+const eyTable = [[0.172,0.19,2.30],[0.345,0.22,1.99],[0.689,0.26,1.71],[1.03,0.28,1.55],[1.38,0.30,1.45],[2.07,0.34,1.31],[3.45,0.38,1.15],[5.17,0.42,1.04],[6.89,0.44,1.00]];
+function eY(r) {
+  if (r <= eyTable[0][0]) return eyTable[0].slice(1);
+  for (let i = 1; i < eyTable.length; i++) {
+    const [x0, e0, y0] = eyTable[i - 1], [x1, e1, y1] = eyTable[i];
+    if (r <= x1) { const t = (r - x0) / (x1 - x0); return [e0 + t * (e1 - e0), y0 + t * (y1 - y0)]; }
+  }
+  return eyTable[eyTable.length - 1].slice(1);
+}
+function bearings() {
+  const type = $("br-type").value, Fr = num("br-fr"), Fa = num("br-fa"), n = num("br-n"), C = num("br-c"), C0 = num("br-c0"),
+        f0 = num("br-f0"), a1 = num("br-rel"), lhT = num("br-lh");
+  let P, note = "";
+  if (type === "dg") {
+    const [e, Y] = eY(f0 * Fa / C0);
+    P = Fa / Fr <= e ? Fr : 0.56 * Fr + Y * Fa;
+    note = `e = ${fmt(e, 3)}, F<sub>a</sub>/F<sub>r</sub> = ${fmt(Fa / Fr, 3)}` + (Fa / Fr <= e ? " → P = F<sub>r</sub>" : `, Y = ${fmt(Y, 2)}`);
+  } else P = num("br-p");
+  const p = type === "roller" ? 10 / 3 : 3;
+  const L10 = (C / P) ** p, L10h = L10 * 1e6 / (60 * n), Lnm = a1 * L10h;
+  const P0 = Math.max(Fr, 0.6 * Fr + 0.5 * Fa), s0 = C0 / P0;
+  $("br-out").innerHTML =
+    card("Equivalent load P", fmt(P) + " N", "", note) +
+    card("L₁₀", fmt(L10, 1) + " million rev") +
+    card("L₁₀h", fmt(L10h) + " h") +
+    card("Life at chosen reliability", fmt(Lnm) + " h", Lnm >= lhT ? "ok" : "bad", Lnm >= lhT ? "Meets target" : "Below target: pick a bigger bearing") +
+    card("Static safety s₀", fmt(s0, 2), s0 >= 2 ? "ok" : s0 >= 1 ? "warn" : "bad", s0 >= 2 ? "OK even with shock" : s0 >= 1 ? "OK for normal running" : "Too low");
+}
+bind(["br-type","br-fr","br-fa","br-p","br-n","br-c","br-c0","br-f0","br-rel","br-lh"], bearings);
+
+/* ---------- Fits (ISO 286, µm) ---------- */
+const ranges = [[6,10],[10,18],[18,30],[30,50]];
+const dev = {   // [upper, lower] per range
+  H7:[[15,0],[18,0],[21,0],[25,0]],
+  f7:[[-13,-28],[-16,-34],[-20,-41],[-25,-50]],
+  g6:[[-5,-14],[-6,-17],[-7,-20],[-9,-25]],
+  h6:[[0,-9],[0,-11],[0,-13],[0,-16]],
+  k6:[[10,1],[12,1],[15,2],[18,2]],
+  n6:[[19,10],[23,12],[28,15],[33,17]],
+  p6:[[24,15],[29,18],[35,22],[42,26]],
+  s6:[[32,23],[39,28],[48,35],[59,43]]
+};
+function fits() {
+  const D = num("ft-d"), [hf, sf] = $("ft-f").value.split("/");
+  const i = ranges.findIndex(([lo, hi]) => D > lo && D <= hi);
+  if (i < 0) { $("ft-out").innerHTML = ""; $("ft-msg").textContent = "This table covers sizes above 6 mm up to 50 mm. Use ISO 286-2 for other sizes."; return; }
+  $("ft-msg").textContent = "";
+  const [hu, hl] = dev[hf][i], [su, sl] = dev[sf][i];
+  const mm = x => fmt(D + x / 1000, 3);
+  const sgn = x => (x > 0 ? "+" : "") + x;
+  const cMax = hu - sl, cMin = hl - su;
+  const kind = cMin >= 0 ? "Clearance fit" : cMax <= 0 ? "Interference fit" : "Transition fit";
+  const word = x => x >= 0 ? `${x} µm clearance` : `${-x} µm interference`;
+  $("ft-out").innerHTML =
+    card(`Hole Ø${D} ${hf}`, `${mm(hl)} – ${mm(hu)}`, "", `${sgn(hu)} / ${sgn(hl)} µm`) +
+    card(`Shaft Ø${D} ${sf}`, `${mm(sl)} – ${mm(su)}`, "", `${sgn(su)} / ${sgn(sl)} µm`) +
+    card("Loosest", word(cMax)) +
+    card("Tightest", word(cMin)) +
+    card("Fit type", kind);
+}
+bind(["ft-d","ft-f"], fits);
+
+/* ---------- Stack-up ---------- */
+function stack() {
+  let nom = 0, wc = 0, ss = 0, bad = [];
+  $("sk-in").value.split("\n").forEach((line, k) => {
+    const t = line.trim(); if (!t) return;
+    const m = t.match(/^([+-])\s*([\d.]+)\s+±?\s*([\d.]+)$/);
+    if (!m) { bad.push(k + 1); return; }
+    const s = m[1] === "-" ? -1 : 1, d = parseFloat(m[2]), tol = parseFloat(m[3]);
+    nom += s * d; wc += tol; ss += tol * tol;
+  });
+  const rss = Math.sqrt(ss);
+  const st = lo => lo > 0 ? "ok" : "bad";
+  $("sk-out").innerHTML =
+    card("Nominal gap", fmt(nom, 3) + " mm") +
+    card("Worst case", `${fmt(nom - wc, 3)} to ${fmt(nom + wc, 3)}`, st(nom - wc), `± ${fmt(wc, 3)} mm`) +
+    card("RSS", `${fmt(nom - rss, 3)} to ${fmt(nom + rss, 3)}`, st(nom - rss), `± ${fmt(rss, 3)} mm`);
+  $("sk-msg").textContent = bad.length ? `Could not read line ${bad.join(", ")}. Use the form: + 50.00 0.10` : "";
+}
+bind(["sk-in"], stack);
+</script>

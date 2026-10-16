@@ -1,0 +1,126 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MechMate</title>
+<meta name="description" content="MechMate: mechanical engineering calculators in one app. Beam deflection, speeds and feeds, motor sizing, belt and chain drives, bolts, fits, bearings, press fits, sheet metal and more.">
+<meta name="theme-color" content="#c9481a">
+<link rel="manifest" href="mechmate.webmanifest">
+<link rel="icon" href="mechmate-192.png" type="image/png">
+<link rel="apple-touch-icon" href="mechmate-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
+<link rel="stylesheet" href="../shared/site.css">
+<script src="../shared/site.js"></script>
+<style>
+.mm{max-width:1160px;margin:0 auto;padding:24px 16px 80px;display:grid;grid-template-columns:240px 1fr;gap:28px;align-items:start}
+.side{position:sticky;top:76px;display:flex;flex-direction:column;gap:16px;max-height:calc(100vh - 92px);overflow-y:auto;scrollbar-width:thin;padding-bottom:12px}
+.side .grp{font-family:var(--f-mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin:0 0 4px 10px}
+.side a{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:6px 10px;border-radius:8px;color:var(--ink);text-decoration:none;font-size:14px}
+.side a:hover{background:var(--surface-2)}
+.side a[aria-current="true"]{background:var(--surface);box-shadow:var(--shadow);font-weight:500}
+.side .ico{width:17px;height:17px;flex:none;color:var(--accent)}
+.search-btn .ico{color:var(--muted)}
+.side a span.l{display:flex;align-items:center;gap:9px}
+.search-btn{display:flex;align-items:center;gap:8px;width:100%;font:inherit;font-size:14px;color:var(--muted);background:var(--surface);border:1px solid var(--rule);border-radius:9px;padding:8px 10px;cursor:pointer;text-align:left}
+.search-btn:hover{border-color:var(--rule-strong)}
+.search-btn kbd,.kbd{margin-left:auto;font-family:var(--f-mono);font-size:11px;border:1px solid var(--rule);border-radius:4px;padding:1px 5px;background:var(--bg)}
+.bar{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin-bottom:18px}
+.crumb{margin:0}
+.seg{display:inline-flex;border:1px solid var(--rule);border-radius:8px;padding:2px;background:var(--surface)}
+.seg button{font:inherit;font-size:13px;border:0;background:none;color:var(--muted);padding:4px 12px;border-radius:6px;cursor:pointer}
+.seg button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink)}
+.tool-head{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:4px}
+.tool-head h2{margin:0}
+.tool-blurb{color:var(--muted);margin:6px 0 4px}
+.save{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.save input{width:190px}
+.toast{font-size:13px;color:var(--ok);min-height:1.3em;margin:4px 0}
+.fields label[hidden]{display:none}
+.pattern{max-width:340px;margin:14px auto 0}
+.pattern svg{width:100%;height:auto;display:block}
+.pattern text{font-family:var(--f-mono);font-size:9px;fill:var(--muted)}
+.pattern .cl{stroke:var(--rule-strong);stroke-dasharray:4 3}
+.pattern .pcd{fill:none;stroke:var(--muted);stroke-dasharray:6 4}
+.pattern .hole{fill:var(--accent-soft);stroke:var(--accent);stroke-width:1.5}
+.coords{margin-top:14px}
+.plans{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin-top:14px}
+.plan{border:1px solid var(--rule);border-radius:14px;background:var(--surface);padding:18px}
+.plan h3{margin:0 0 6px;font-family:var(--f-display);font-weight:400;font-size:28px}
+.plan ul{margin:8px 0 0;padding-left:18px;font-size:14px}
+.proj-list{display:grid;gap:10px;margin-top:14px}
+.item{display:flex;flex-wrap:wrap;justify-content:space-between;gap:8px;align-items:center;border:1px solid var(--rule);border-radius:10px;background:var(--surface);padding:10px 14px}
+.item .t{font-weight:500}
+.item .d{font-size:13px;color:var(--muted)}
+.empty{border:1px dashed var(--rule-strong);border-radius:12px;padding:22px;text-align:center;color:var(--muted)}
+/* command palette */
+.pal{position:fixed;inset:0;z-index:50;background:rgba(10,12,14,.45);display:flex;align-items:flex-start;justify-content:center;padding:12vh 16px 16px}
+.pal[hidden]{display:none}
+.pal .box{width:min(560px,100%);background:var(--surface);border:1px solid var(--rule);border-radius:14px;box-shadow:0 24px 60px -20px rgba(0,0,0,.5);overflow:hidden}
+.pal input{border:0;border-bottom:1px solid var(--rule);border-radius:0;font-size:16px;padding:14px 16px;background:var(--surface)}
+.pal input:focus{outline:none}
+.pal ul{list-style:none;margin:0;padding:6px;max-height:50vh;overflow-y:auto}
+.pal li{margin:0;max-width:none;display:flex;justify-content:space-between;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;font-size:14.5px}
+.pal li small{color:var(--muted);font-size:12.5px}
+.pal li[aria-selected="true"]{background:var(--accent-soft)}
+#report{display:none}
+@media (max-width:860px){
+  .mm{grid-template-columns:1fr;gap:12px}
+  .side{position:static;max-height:none;flex-direction:row;overflow-x:auto;gap:4px;padding-bottom:6px;scrollbar-width:none}
+  .side::-webkit-scrollbar{display:none}
+  .side .grp{display:none}
+  .side>div{display:flex;gap:4px}
+  .side a,.search-btn{white-space:nowrap;border:1px solid var(--rule);background:var(--surface);width:auto}
+  .search-btn kbd{display:none}
+  .fields,.out{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .calc{padding:14px}
+}
+@media print{
+  body>*:not(#report){display:none!important}
+  body{background:#fff;color:#000}
+  #report{display:block;font-family:var(--f-ui);color:#000}
+  #report h1{font-size:32px;margin:0 0 4px}
+  #report h2{font-size:20px;margin:22px 0 6px;font-family:var(--f-ui);font-weight:600}
+  #report table{border-collapse:collapse;width:100%;font-size:12px;margin-bottom:8px}
+  #report th,#report td{border:1px solid #bbb;padding:4px 8px;text-align:left;background:none;color:#000}
+  #report .meta{color:#555;font-size:12px}
+  #report section{break-inside:avoid}
+}
+</style>
+<header class="topbar"><div class="in">
+  <a class="brand" href="../"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="2.6"/><path d="M10 2.5v2.2M10 15.3v2.2M2.5 10h2.2M15.3 10h2.2M4.7 4.7l1.6 1.6M13.7 13.7l1.6 1.6M4.7 15.3l1.6-1.6M13.7 6.3l1.6-1.6"/><circle cx="10" cy="10" r="5.4"/></svg>Mechanical Garage</a>
+  <nav aria-label="Site">
+    <a href="./" aria-current="page">MechMate</a>
+    <a href="../garage/">Guides</a>
+    <a href="../garage/machine-design.html">Machine Design</a>
+  </nav>
+  <button class="theme-btn" type="button" aria-label="Switch between light and dark theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+</div></header>
+
+<div class="mm">
+  <aside class="side" id="side" aria-label="Tools"></aside>
+  <div>
+    <div class="bar">
+      <div class="crumb"><a href="../">Mechanical Garage</a> / MechMate</div>
+      <div class="seg" role="group" aria-label="Units">
+        <button type="button" data-sys="si">SI (mm, N)</button><button type="button" data-sys="imp">Imperial (in, lbf)</button>
+      </div>
+    </div>
+    <div id="view"></div>
+  </div>
+</div>
+<div class="pal" id="pal" hidden>
+  <div class="box" role="dialog" aria-label="Search tools">
+    <input id="pal-q" type="text" placeholder="Search tools…" aria-label="Search tools" autocomplete="off">
+    <ul id="pal-list" role="listbox"></ul>
+  </div>
+</div>
+<div id="report"></div>
+
+<footer class="site"><div class="in">
+  <span>MechMate · calculators for first sizing. Check final designs against codes and supplier data.</span>
+  <div class="links"><a href="./">MechMate</a><a href="../garage/">Guides</a><a href="../garage/machine-design.html">Machine Design</a><a href="../personal/">Projects</a></div>
+</div></footer>
+
+<script src="mechmate-tools.js"></script>
+<script src="mechmate.js"></script>

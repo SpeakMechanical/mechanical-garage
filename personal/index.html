@@ -1,0 +1,104 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Personal Projects</title>
+<meta name="description" content="Personal machine-building projects: vending machines, purifiers, a WAAM metal printer, a smart helmet and a robotic arm end-effector.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&family=Instrument+Serif:ital@0;1&display=swap">
+<link rel="stylesheet" href="../shared/site.css">
+<script src="../shared/site.js"></script>
+<header class="topbar"><div class="in">
+  <a class="brand" href="../"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="10" cy="10" r="2.6"/><path d="M10 2.5v2.2M10 15.3v2.2M2.5 10h2.2M15.3 10h2.2M4.7 4.7l1.6 1.6M13.7 13.7l1.6 1.6M4.7 15.3l1.6-1.6M13.7 6.3l1.6-1.6"/><circle cx="10" cy="10" r="5.4"/></svg>Mechanical Garage</a>
+  <nav aria-label="Site">
+    <a href="../mechmate/">MechMate</a>
+    <a href="../garage/">Guides</a>
+    <a href="../garage/machine-design.html">Machine Design</a>
+  </nav>
+  <button class="theme-btn" type="button" aria-label="Switch between light and dark theme"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></svg></button>
+</div></header>
+<main>
+  <div class="hero">
+    <div class="eyebrow">Personal · 9 builds</div>
+    <h1>Personal <em>projects</em></h1>
+    <p class="lede">The machines being built in the garage, the first design questions for each, and the guides they lean on.</p>
+  </div>
+  <div class="projects">
+      <article class="proj">
+        <span class="no">01</span><h3>Sprout Vending Machine</h3>
+        <p>Dispenses portions of fresh sprouts from a chilled hopper.</p>
+        <div class="q">First questions</div>
+        <ul><li>Portioning: auger, rotary valve or weigh-and-drop?</li><li>Cold chain at 2–5 °C and how it is cleaned daily</li><li>Food-grade materials, payment by UPI QR</li></ul>
+        <div class="chips"><a class="chip" href="../garage/#bearings">Bearings</a><a class="chip" href="../garage/#bolts">Bolts</a><a class="chip" href="../garage/#gdt">Tolerances</a></div>
+        <span class="status">Planning</span>
+      </article>
+      <article class="proj">
+        <span class="no">02</span><h3>Sanitizer Vending Machine</h3>
+        <p>Contactless, metered sanitizer dispensing for public places.</p>
+        <div class="q">First questions</div>
+        <ul><li>Metering: peristaltic or diaphragm pump, dose accuracy</li><li>Level sensing and refill alerts</li><li>Alcohol-compatible wetted parts, enclosure against tampering</li></ul>
+        <div class="chips"><a class="chip" href="../garage/#bolts">Bolts</a><a class="chip" href="../garage/#gdt">Tolerances</a></div>
+        <span class="status">Planning</span>
+      </article>
+      <article class="proj">
+        <span class="no">03</span><h3>Automatic Sandwich Maker</h3>
+        <p>Takes bread through spreading, filling and toasting without a hand on it.</p>
+        <div class="q">First questions</div>
+        <ul><li>Bread handling: grippers, suction or conveyor</li><li>Gantry axes for spread and filling dispensers</li><li>Hygiene: wash-down, food-grade grease, stainless fasteners</li></ul>
+        <div class="chips"><a class="chip" href="../garage/#ballscrew">Ball screw</a><a class="chip" href="../garage/#bearings">Bearings</a><a class="chip" href="../garage/#bolts">Bolts</a></div>
+        <span class="status">Planning</span>
+      </article>
+      <article class="proj">
+        <span class="no">04</span><h3>Semi-automatic Peptide Synthesizer</h3>
+        <p>Automates reagent dosing and washing steps; the operator loads and supervises.</p>
+        <div class="q">First questions</div>
+        <ul><li>Syringe pump resolution: lead and microstepping for µL doses</li><li>Valve manifold and chemical compatibility (PTFE, PEEK, glass)</li><li>Reaction vessel agitation, fume extraction, safety interlocks</li></ul>
+        <div class="chips"><a class="chip" href="../garage/#ballscrew">Ball screw</a><a class="chip" href="../garage/#gdt">Tolerances</a></div>
+        <span class="status">Planning</span>
+      </article>
+      <article class="proj">
+        <span class="no">05</span><h3>Air Purifier</h3>
+        <p>Fan and filter stack sized for a target clean air delivery rate (CADR).</p>
+        <div class="q">First questions</div>
+        <ul><li>Room size → CADR → airflow and fan pressure</li><li>Filter stack: pre-filter, HEPA H13, activated carbon</li><li>PM2.5 sensor auto mode, noise at night</li></ul>
+        <div class="chips"><a class="chip" href="../garage/#bearings">Bearings</a><a class="chip" href="../garage/#bolts">Bolts</a></div>
+        <span class="status">Planning</span>
+      </article>
+      <article class="proj">
+        <span class="no">06</span><h3>Need-based Water Purifier</h3>
+        <p>Senses incoming water quality and runs only the treatment stages it needs, cutting the water an RO system wastes.</p>
+        <div class="q">First questions</div>
+        <ul><li>Sensors: TDS, turbidity, flow</li><li>Stage bypass valves: sediment, carbon, RO, UV</li><li>Rules for when RO is really required</li></ul>
+        <div class="chips"><a class="chip" href="../garage/#gdt">Tolerances</a><a class="chip" href="../garage/#bolts">Bolts</a></div>
+        <span class="status">Planning</span>
+      </article>
+      <article class="proj">
+        <span class="no">07</span><h3>DIY WAAM 3D Printer</h3>
+        <p>Wire arc additive manufacturing: a MIG torch on a gantry builds metal parts layer by layer.</p>
+        <div class="q">First questions</div>
+        <ul><li>Gantry stiffness and heat shielding near the arc</li><li>Z axis under torch and cable load; layer height control</li><li>Interpass temperature, spatter protection for screws and rails</li></ul>
+        <div class="chips"><a class="chip" href="../garage/#ballscrew">Ball screw</a><a class="chip" href="../garage/#bearings">Bearings</a><a class="chip" href="../garage/#bolts">Bolts</a></div>
+        <span class="status">Planning</span>
+      </article>
+      <article class="proj">
+        <span class="no">08</span><h3>Smart Helmet with Air Purifier</h3>
+        <p>A helmet with a filtered blower feeding clean air to the face, plus sensors.</p>
+        <div class="q">First questions</div>
+        <ul><li>Weight and balance on the head; battery placement</li><li>Blower and filter pressure drop vs airflow</li><li>Impact safety must not be weakened by the add-ons</li></ul>
+        <div class="chips"><a class="chip" href="../garage/#bearings">Bearings</a><a class="chip" href="../garage/#gdt">Tolerances</a></div>
+        <span class="status">Planning</span>
+      </article>
+      <article class="proj">
+        <span class="no">09</span><h3>The Third Arm</h3>
+        <p>A multi-purpose robotic arm end-effector: one quick-change flange, many tools.</p>
+        <div class="q">First questions</div>
+        <ul><li>Standard flange (ISO 9409-1) and quick-change locking</li><li>Tool set: gripper, suction, screwdriver, probe</li><li>Payload and moment on the wrist; repeatable location with dowels</li></ul>
+        <div class="chips"><a class="chip" href="../garage/#bearings">Bearings</a><a class="chip" href="../garage/#bolts">Bolts</a><a class="chip" href="../garage/#gdt">GD&amp;T</a></div>
+        <span class="status">Planning</span>
+      </article>
+  </div>
+</main>
+<footer class="site"><div class="in">
+  <span>Mechanical Garage · machine design tools and guides</span>
+  <div class="links"><a href="../mechmate/">MechMate</a><a href="../garage/">Guides</a><a href="../garage/machine-design.html">Machine Design</a><a href="./">Projects</a></div>
+</div></footer>
