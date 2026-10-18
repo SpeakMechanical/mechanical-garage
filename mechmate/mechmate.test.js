@@ -189,3 +189,33 @@ test("fits and bolt patterns", () => {
   const p = run("pattern");
   near(p.chord, 50); near(p.pts[0].x, 50); near(p.pts[3].x, -50);
 });
+
+test("AC sizing: heat load lines, humidity, sizing and star-rating economics", () => {
+  const r = run("ac");
+  const line = name => r.lines.find(l => l[0] === name)[3];
+  // 4 × 3.5 × 3 m room, 2 of 4 walls outside, one 1.2 × 1.2 m west window with curtains, 43 °C outside, 24 °C inside.
+  const Awin = 1.44, Awall = 0.5 * 2 * 7.5 * 3 - Awin;
+  near(line("Walls"), 2.1 * Awall * (19 + 5));
+  near(line("Window glass (heat)"), 5.8 * Awin * 19);
+  near(line("Window glass (sun)"), 500 * 0.65 * Awin);
+  near(line("People (heat)"), 150); near(line("People (moisture)"), 110);
+  near(line("Outside air (heat)"), 0.335 * 1 * 42 * 19);
+  assert.strictEqual(line("Roof"), 0);
+  near(r.total, (r.sens + r.lat) * 1.1);
+  near(r.tr, r.total / 3517);
+  near(r.derate, 0.92); near(r.rated, r.tr / 0.92);
+  assert.strictEqual(r.size, 1);                     // 0.84 TR rated → 1 ton
+  // Humidity ratios against psychrometric tables: 24 °C 50% ≈ 9.3 g/kg, 35 °C 60% ≈ 21.4 g/kg.
+  const hum = run("ac", {climate: "humid"});
+  near(hum.To, 35); assert.strictEqual(hum.derate, 1);
+  near(hum.dw + 9.3, 21.4, 0.02);
+  // Energy = capacity × hours ÷ ISEER; payback = price difference ÷ yearly saving.
+  near(r.e3, 3.517 * 1920 / 4.2); near(r.e5, 3.517 * 1920 / 5.2);
+  near(r.payback, 6000 / ((r.e3 - r.e5) * 8));
+  // Load rises with a sunny top floor, west windows and more people.
+  assert.ok(run("ac", {top: "3.1"}).total > r.total + 1000);
+  assert.ok(run("ac", {face: "north"}).total < r.total);
+  assert.ok(run("ac", {people: 6}).total > r.total);
+  // Light use makes the 5-star not worth it.
+  assert.ok(run("ac", {hours: 2, days: 90}).payback > 10);
+});

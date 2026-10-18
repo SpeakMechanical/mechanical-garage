@@ -34,7 +34,11 @@ const QTY = {
   flow:     {si: ["L/min", 1],     imp: ["gal/min", 3.785411784]},
   airFlow:  {si: ["L/min free air", 1], imp: ["cfm free air", 28.316846592]},
   volume:   {si: ["L", 1],         imp: ["in³", 0.016387064]},
-  modulus:  {si: ["GPa", 1],       imp: ["Mpsi", 6.89475729317]}
+  modulus:  {si: ["GPa", 1],       imp: ["Mpsi", 6.89475729317]},
+  lenM:     {si: ["m", 1],         imp: ["ft", 0.3048]},
+  areaM:    {si: ["m²", 1],        imp: ["ft²", 0.09290304]},
+  volM:     {si: ["m³", 1],        imp: ["ft³", 0.028316846592]},
+  heat:     {si: ["W", 1],         imp: ["BTU/h", 0.29307107]}
 };
 function unit(q, sys) { return q && QTY[q] ? QTY[q][sys][0] : ""; }
 function toDisp(q, x, sys) {
@@ -717,6 +721,112 @@ tool({id: "pattern", name: "Bolt patterns", cat: "make", pro: false,
     return `<div class="pattern">${svg}</div><div class="tw coords"><table><tr><th>Hole</th><th class="n">Angle</th><th class="n">X</th><th class="n">Y</th></tr>${rows}</table></div>`;
   }});
 
+/* ---------------- Home and HVAC ---------------- */
+// Summer design conditions (outdoor dry bulb °C, relative humidity %) for Indian climate types.
+const AC_CLIMATES = {
+  dry:   {name: "Very hot and dry (Delhi, Jaipur, Nagpur, Ahmedabad)", To: 43, RH: 20},
+  humid: {name: "Hot and humid (Mumbai, Chennai, Kolkata, Kochi)", To: 35, RH: 60},
+  warm:  {name: "Warm (Bengaluru, Pune, Hyderabad)", To: 35, RH: 35},
+  custom: {name: "Enter my own"}
+};
+// Peak solar heat through clear single glass, W/m², for Indian latitudes in May–June.
+const AC_SUN = {west: 500, east: 450, south: 200, north: 100, shaded: 80};
+const AC_SIZES = [0.75, 1, 1.5, 2, 2.5, 3];
+const satP = T => 0.61094 * Math.exp(17.625 * T / (T + 243.04));            // kPa, Magnus formula
+const humRatio = (T, RH) => { const pv = satP(T) * RH / 100; return 622 * pv / (101.325 - pv); };   // g/kg dry air
+tool({id: "ac", name: "AC size and star rating", cat: "home", pro: false,
+  blurb: "Works out the room's peak summer heat load piece by piece, picks the AC size, and compares running costs of a 3-star and a 5-star unit. Every number in the breakdown can be checked by hand.",
+  fields: [
+    {id: "L", label: "Room length", q: "lenM", value: 4}, {id: "W", label: "Room width", q: "lenM", value: 3.5},
+    {id: "H", label: "Ceiling height", q: "lenM", value: 3},
+    {id: "climate", label: "Climate", type: "select", options: Object.entries(AC_CLIMATES).map(([k, c]) => [k, c.name]), value: "dry"},
+    {id: "To", label: "Outdoor temperature", q: "temp", value: 40, show: v => v.climate === "custom"},
+    {id: "RH", label: "Outdoor humidity, %", value: 40, show: v => v.climate === "custom"},
+    {id: "Ti", label: "AC set temperature", q: "temp", value: 24},
+    {id: "walls", label: "Walls facing outside (0–4)", value: 2},
+    {id: "wall", label: "Wall construction", type: "select", options: sel([["2.1", "Brick, 9 in (230 mm), plastered"], ["3.0", "Brick, 4.5 in (115 mm), plastered"], ["0.9", "AAC block, 200 mm"], ["0.5", "Insulated wall"]]), value: "2.1"},
+    {id: "sunwall", label: "Sun on those walls", type: "select", options: sel([["0", "Shaded most of the day"], ["5", "Some sun"], ["12", "Strong afternoon sun"]]), value: "5"},
+    {id: "top", label: "Roof above the room", type: "select", options: sel([["no", "Another floor (no roof)"], ["3.1", "Top floor, bare RCC roof"], ["1.2", "Top floor, insulated or shaded roof"]]), value: "no"},
+    {id: "nwin", label: "Number of windows", value: 1},
+    {id: "ww", label: "Window width", q: "lenM", value: 1.2, show: v => v.nwin > 0},
+    {id: "wh", label: "Window height", q: "lenM", value: 1.2, show: v => v.nwin > 0},
+    {id: "face", label: "Windows face", type: "select", options: sel([["west", "West (afternoon sun)"], ["east", "East (morning sun)"], ["south", "South"], ["north", "North"], ["shaded", "Shaded by buildings or trees"]]), value: "west", show: v => v.nwin > 0},
+    {id: "shade", label: "Window covering", type: "select", options: sel([["1", "None (clear glass)"], ["0.65", "Curtains or blinds"], ["0.5", "Sun-control film or tinted glass"], ["0.4", "Outside sunshade (chajja) or awning"]]), value: "0.65", show: v => v.nwin > 0},
+    {id: "people", label: "People usually in the room", value: 2},
+    {id: "lights", label: "Lights", q: "heat", value: 40},
+    {id: "appl", label: "Appliances running (TV, PC…)", q: "heat", value: 150},
+    {id: "ach", label: "Air leakage", type: "select", options: sel([["0.5", "Well sealed"], ["1", "Normal"], ["2", "Leaky, or door opened often"]]), value: "1"},
+    {id: "hours", label: "AC use, hours per day", value: 8},
+    {id: "days", label: "Days per year (8 months ≈ 240)", value: 240},
+    {id: "tariff", label: "Electricity rate, ₹ per kWh", value: 8},
+    {id: "s3", label: "3-star ISEER (from the BEE label)", value: 4.2},
+    {id: "s5", label: "5-star ISEER (from the BEE label)", value: 5.2},
+    {id: "dp", label: "Extra price of the 5-star, ₹", value: 6000},
+    {id: "life", label: "Years you'll keep the AC", value: 10}],
+  solve(v) {
+    const c = AC_CLIMATES[v.climate] || AC_CLIMATES.dry;
+    const To = v.climate === "custom" ? v.To : c.To, RH = v.climate === "custom" ? v.RH : c.RH;
+    const dT = To - v.Ti, floor = v.L * v.W, vol = floor * v.H;
+    const nwin = Math.max(0, Math.round(v.nwin)), Awin = nwin * v.ww * v.wh;
+    const walls = Math.min(4, Math.max(0, v.walls));
+    const Awall = Math.max(0, walls / 4 * 2 * (v.L + v.W) * v.H - Awin);    // average of long and short walls
+    const Uw = +v.wall, dTw = dT + +v.sunwall, roofU = v.top === "no" ? 0 : +v.top, dTr = dT + 20;
+    const sun = AC_SUN[v.face] || 0, sc = +v.shade, ach = +v.ach;
+    const dw = Math.max(0, humRatio(To, RH) - humRatio(v.Ti, 50));
+    const n = Math.max(0, Math.round(v.people));
+    const lines = [
+      ["Walls", "U × area × (ΔT + sun)", `${Uw} × ${Awall.toFixed(2)} m² × ${dTw.toFixed(1)} K`, Uw * Awall * dTw, "s"],
+      ["Roof", roofU ? "U × area × (ΔT + 20 K sun on roof)" : "Floor above is lived in", roofU ? `${roofU} × ${floor.toFixed(2)} m² × ${dTr.toFixed(1)} K` : "—", roofU * floor * dTr, "s"],
+      ["Window glass (heat)", "5.8 W/m²K × glass area × ΔT", `5.8 × ${Awin.toFixed(2)} m² × ${dT.toFixed(1)} K`, 5.8 * Awin * dT, "s"],
+      ["Window glass (sun)", "solar gain × covering factor × area", `${sun} W/m² × ${sc} × ${Awin.toFixed(2)} m²`, sun * sc * Awin, "s"],
+      ["People (heat)", "75 W each", `75 × ${n}`, 75 * n, "s"],
+      ["People (moisture)", "55 W each", `55 × ${n}`, 55 * n, "l"],
+      ["Lights", "as entered", `${v.lights.toFixed(0)} W`, v.lights, "s"],
+      ["Appliances", "as entered", `${v.appl.toFixed(0)} W`, v.appl, "s"],
+      ["Outside air (heat)", "0.335 × air changes/h × volume × ΔT", `0.335 × ${ach} × ${vol.toFixed(1)} m³ × ${dT.toFixed(1)} K`, 0.335 * ach * vol * dT, "s"],
+      ["Outside air (moisture)", "0.834 × air changes/h × volume × Δw", `0.834 × ${ach} × ${vol.toFixed(1)} m³ × ${dw.toFixed(1)} g/kg`, 0.834 * ach * vol * dw, "l"]
+    ];
+    const sens = lines.filter(l => l[4] === "s").reduce((s, l) => s + l[3], 0), lat = lines.filter(l => l[4] === "l").reduce((s, l) => s + l[3], 0);
+    const total = (sens + lat) * 1.1;                                       // 10% margin
+    const tr = total / 3517;
+    // AC capacity is rated at 35 °C outdoors (ISO 5151 T1) and falls about 1% per °C hotter.
+    const derate = To > 35 ? 1 - 0.01 * (To - 35) : 1, rated = tr / derate;
+    const size = AC_SIZES.find(s => s >= rated) || null;
+    const capKW = (size || rated) * 3.517, hrs = v.hours * v.days;
+    const e3 = capKW * hrs / v.s3, e5 = capKW * hrs / v.s5;
+    const save = (e3 - e5) * v.tariff, payback = save > 0 ? v.dp / save : Infinity;
+    return {To, RH, dT, floor, vol, Awin, Awall, dw, lines, sens, lat, total, tr, derate, rated, size, hrs, e3, e5, save, payback,
+      net: save * v.life - v.dp, thumb: floor / 0.09290304 / 120, shr: sens / (sens + lat)};
+  },
+  rows: (r, v, f) => {
+    const g = (x, d = 0) => x.toLocaleString("en-US", {maximumFractionDigits: d});
+    const temp = x => `${g(toDisp("temp", x, f.sys), 1)} ${unit("temp", f.sys)}`;
+    const good = r.payback <= Math.min(4, v.life / 2), ok = r.payback <= v.life;
+    return [
+      ["Recommended AC", r.size ? `${r.size} ton` : "Over 3 tons", "ok", r.size ? `Needs ${g(r.rated, 2)} TR of rated capacity` : "Use two units or a ducted system"],
+      ["Peak heat load", f(r.total, "heat"), "", `${g(r.total / 1000, 2)} kW = ${g(r.tr, 2)} TR with a 10% margin (1 TR = 3,517 W)`],
+      ["Hot-weather capacity loss", r.derate < 1 ? `${g((1 - r.derate) * 100)}%` : "None", "", r.derate < 1 ? `ACs are rated at 35 °C outside; at ${temp(r.To)} they give about ${g(r.derate * 100)}%. Inverter models rated for 52 °C hold up better` : "Outdoor design is 35 °C or cooler"],
+      ["Heat / moisture split", `${g(r.shr * 100)}% / ${g((1 - r.shr) * 100)}%`, "", r.shr < 0.75 ? "Humid load: an AC with a dry mode helps" : "Mostly heat"],
+      ["Room", `${f(r.floor, "areaM")} · ${f(r.vol, "volM")}`, "", `Shop rule of thumb (120 ft² per ton) says ${g(r.thumb, 2)} TR`],
+      ["Design conditions", `${temp(r.To)} outside, ${g(r.RH)}% RH`, "", `Inside ${temp(v.Ti)} at 50% RH, ΔT = ${g(toDisp("dTemp", r.dT, f.sys), 1)} ${unit("dTemp", f.sys)}`],
+      ["Power used per year", `3★ ${g(r.e3)} kWh · 5★ ${g(r.e5)} kWh`, "", `${g(r.hrs)} hours a year × capacity ÷ ISEER`],
+      ["5-star saves per year", `₹${g(r.save)}`, "", `${g(r.e3 - r.e5)} kWh × ₹${g(v.tariff, 2)} per kWh`],
+      ["Payback of the 5-star", isFinite(r.payback) ? `${g(r.payback, 1)} years` : "Never", good ? "ok" : ok ? "warn" : "bad",
+        good ? `Buy the 5-star: it comes out ₹${g(Math.max(0, r.net))} ahead over ${g(v.life)} years`
+          : ok ? `Close call: the 5-star gains only ₹${g(Math.max(0, r.net))} over ${g(v.life)} years, so a 3-star is enough`
+          : `A 3-star is enough at ${g(v.hours, 1)} hours a day`]];
+  },
+  extra(r, v, f) {
+    const row = l => `<tr><td>${l[0]}</td><td>${l[1]}</td><td class="n">${l[2]}</td><td class="n">${f(l[3], "heat")}</td></tr>`;
+    return `<h3 style="margin:22px 0 8px">The calculation</h3>
+      <div class="tw"><table><tr><th>Heat source</th><th>Formula</th><th class="n">Numbers</th><th class="n">Heat</th></tr>
+      ${r.lines.map(row).join("")}
+      <tr><th colspan="3">Sum (heat ${f(r.sens, "heat")} + moisture ${f(r.lat, "heat")})</th><th class="n">${f(r.sens + r.lat, "heat")}</th></tr>
+      <tr><td colspan="3">With 10% margin, ÷ 3,517 W per ton</td><td class="n">${f(r.total, "heat")} = ${f.n(r.tr, 3)} TR</td></tr>
+      <tr><td colspan="3">÷ hot-weather factor ${f.n(r.derate, 3)} = rated capacity needed</td><td class="n">${f.n(r.rated, 3)} TR → ${r.size ? r.size + " ton" : "over 3 tons"}</td></tr></table></div>
+      <p class="note">ΔT = outdoor − indoor temperature. U values are in W/m²·K for typical Indian construction. Window sun gains are peak values for clear glass in May–June; the covering factor reduces them. Moisture uses outdoor humidity ${f.n(humRatio(r.To, r.RH), 3)} g/kg against ${f.n(humRatio(v.Ti, 50), 3)} g/kg indoors (Δw = ${f.n(r.dw, 3)}). Running cost: energy = capacity × hours ÷ ISEER, the same basis as the BEE label (which quotes 1,600 hours a year). Check the ISEER printed on the two models you are comparing.</p>`;
+  }});
+
 /* ---------------- Reference ---------------- */
 tool({id: "thermal", name: "Thermal expansion", cat: "ref", pro: false,
   blurb: "Free growth of a part, the stress if it is held rigidly, and how a fit between two materials changes with temperature.",
@@ -755,7 +865,7 @@ tool({id: "units", name: "Unit conversion", cat: "ref", pro: false,
   },
   rows: (r, v, f) => r.list.map(([k, x, me]) => [k, Math.abs(x) >= 1e9 || (x !== 0 && Math.abs(x) < 1e-4) ? x.toExponential(5) : x.toLocaleString("en-US", {maximumSignificantDigits: 6}), me ? "ok" : ""])});
 
-const CATS = [["motion", "Power and motion"], ["strength", "Strength"], ["make", "Machining and fabrication"], ["ref", "Reference"]];
+const CATS = [["motion", "Power and motion"], ["strength", "Strength"], ["make", "Machining and fabrication"], ["home", "Home and HVAC"], ["ref", "Reference"]];
 
 const MM = {QTY, unit, toDisp, toSI, fmtNum, formatter, MATERIALS, MAT_OPTIONS, MACHINING, BOLTS, DEV, FIT_RANGES, isoFit, UNITS, TOOLS, CATS, mat};
 if (typeof module === "object" && module.exports) module.exports = MM; else root.MM = MM;
