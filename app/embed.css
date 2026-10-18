@@ -1,0 +1,12 @@
+/* Viewer, guides and course pages inside the Android app: an app bar with a back button
+   replaces the website's menu and footer. */
+.embedded .topbar,.embedded footer.site{display:none!important}
+.appbar{position:sticky;top:0;z-index:25;display:flex;align-items:center;gap:10px;padding:calc(max(env(safe-area-inset-top,0px),var(--safe-area-inset-top,0px)) + 8px) 12px 8px;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--rule)}
+.appbar button{width:42px;height:42px;flex:none;border:0;border-radius:14px;background:var(--surface);color:var(--ink);display:grid;place-items:center;box-shadow:var(--shadow);transition:transform .14s}
+.appbar button:active{transform:scale(.92)}
+.appbar svg{width:21px;height:21px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.appbar b{font-family:var(--f-display);font-weight:400;font-size:24px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.embedded main{padding-top:8px}
+.embedded .hero{padding-top:20px}
+.embedded .hero::before{display:none}
+.embedded body{-webkit-tap-highlight-color:transparent}

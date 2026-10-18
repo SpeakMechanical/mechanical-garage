@@ -45,12 +45,22 @@ publishes the site folders to GitHub Pages. The test file and this README are no
 
 ## Android app
 
-The same pages run as an Android app through [Capacitor](https://capacitorjs.com). App id
+An Android app built with [Capacitor](https://capacitorjs.com). App id
 `com.speakmechanical.mechanicalgarage`, name "Mechanical Garage".
+
+The app has its own phone interface in `app/` rather than the website's pages: a bottom tab bar
+(Home, Tools, Viewer, Learn, Workshop); full-screen tool pages with a large animated result,
+tap-and-hold steppers, swipe between tools of a category, and live visuals (a beam that bends,
+gears and pulleys spinning at their speed ratio, an AC tonnage gauge with running-cost bars, a bolt
+load bar); favourites, automatic history, named saves and a shareable report, all kept on the phone;
+vibration feedback, the Android back key and status-bar colours through Capacitor plugins. The
+formulas are the same tested `mechmate/mechmate-tools.js`. The CAD Viewer, guides and Machine Design
+pages are the website's, shown with an app bar (`app/embed.css`, `app/embed.js`).
 
 | Piece | What it does |
 |---|---|
-| `scripts/build-app.mjs` | Builds `app-www/`: the site with every CDN library (three.js, OpenCascade, the DXF reader) and font copied in from `node_modules`, so the app works with no internet. Folder links become `…/index.html`, and the CAD Viewer's file picker accepts any file (Android can't filter by `.step`). |
+| `app/` | The app interface: `shell.html` (becomes `index.html`), `app.js`, `app.css`, and `embed.*` for website pages shown inside the app. |
+| `scripts/build-app.mjs` | Builds `app-www/`: the app interface plus the site's pages, with every CDN library (three.js, OpenCascade, the DXF reader) and font copied in from `node_modules`, so the app works with no internet. Folder links become `…/index.html`, and the CAD Viewer's file picker accepts any file (Android can't filter by `.step`). |
 | `capacitor.config.json` | Points Capacitor at `app-www/`. |
 | `android/` | The Android Studio project. Icons and splash screens come from `scripts/android_icons.py`. |
 | `.github/workflows/android.yml` | Builds the app on GitHub, so no Android Studio is needed here. |

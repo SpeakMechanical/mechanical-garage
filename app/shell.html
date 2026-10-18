@@ -1,0 +1,93 @@
+<!doctype html>
+<!-- The Android app's home: built into app-www/index.html by scripts/build-app.mjs. Paths are relative to app-www/. -->
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Mechanical Garage</title>
+<meta name="theme-color" content="#c9481a">
+<link rel="stylesheet" href="vendor/fonts/fonts.css">
+<link rel="stylesheet" href="shared/site.css">
+<link rel="stylesheet" href="app/app.css">
+<script src="shared/site.js"></script>
+<body class="mgapp">
+<div id="screens">
+  <!-- ================= Home ================= -->
+  <section class="screen" id="tab-home" data-tab="home">
+    <header class="top">
+      <div><div class="hello" id="hello">Hello</div><h1>Mechanical <em>Garage</em></h1></div>
+      <button class="icon-btn" data-open="settings" aria-label="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    </header>
+    <div id="continue"></div>
+    <h2 class="sec">Your tools</h2>
+    <div class="tiles big" id="home-favs"></div>
+    <a class="cad-card press" href="viewer/index.html">
+      <svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 6l22 11v24L32 58 10 41V17z"/><path d="M10 17l22 11 22-11M32 28v30"/></svg>
+      <div><b>Open a CAD file</b><span>STEP, STL, OBJ, DXF and more. Rotate, cut, measure.</span></div>
+    </a>
+    <div id="home-recent"></div>
+    <div id="home-learn"></div>
+  </section>
+
+  <!-- ================= Tools ================= -->
+  <section class="screen" id="tab-tools" data-tab="tools" hidden>
+    <header class="top"><h1>Tools</h1></header>
+    <div class="search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="M20 20l-4.5-4.5"/></svg><input id="q" type="search" placeholder="Search 19 tools" aria-label="Search tools"></div>
+    <div class="chips" id="cats"></div>
+    <div class="tiles" id="tool-grid"></div>
+  </section>
+
+  <!-- ================= Learn ================= -->
+  <section class="screen" id="tab-learn" data-tab="learn" hidden>
+    <header class="top"><h1>Learn</h1></header>
+    <div id="learn-list"></div>
+  </section>
+
+  <!-- ================= Workshop ================= -->
+  <section class="screen" id="tab-workshop" data-tab="workshop" hidden>
+    <header class="top"><h1>Workshop</h1>
+      <button class="icon-btn" data-open="settings" aria-label="Settings"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></svg></button></header>
+    <div class="seg" id="ws-seg" role="tablist">
+      <button data-ws="favs" aria-selected="true">Favourites</button><button data-ws="history">History</button><button data-ws="saved">Saved</button>
+    </div>
+    <div id="ws-body"></div>
+  </section>
+</div>
+
+<!-- ================= Tool screen ================= -->
+<div class="tool" id="tool" aria-hidden="true" role="dialog" aria-label="Tool">
+  <header class="tbar" id="tbar">
+    <button class="icon-btn" id="t-back" aria-label="Back"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
+    <div class="ttl"><small id="t-cat"></small><h2 id="t-name"></h2></div>
+    <button class="icon-btn" id="t-fav" aria-label="Favourite"><svg viewBox="0 0 24 24"><path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.8z"/></svg></button>
+    <button class="icon-btn" id="t-share" aria-label="Share result"><svg viewBox="0 0 24 24"><circle cx="18" cy="5" r="2.5"/><circle cx="6" cy="12" r="2.5"/><circle cx="18" cy="19" r="2.5"/><path d="M8.2 10.9l7.6-4.4M8.2 13.1l7.6 4.4"/></svg></button>
+  </header>
+  <div class="dots" id="t-dots"></div>
+  <div class="tscroll" id="tscroll">
+    <div class="hero" id="hero"></div>
+    <div class="visual" id="visual"></div>
+    <h3 class="sec">Inputs</h3>
+    <div class="inputs" id="inputs"></div>
+    <h3 class="sec">Results</h3>
+    <ul class="results" id="results"></ul>
+    <div id="msg" class="msg"></div>
+    <details class="calc" id="calc" hidden><summary>Show the calculation</summary><div id="extra"></div></details>
+    <p class="blurb" id="blurb"></p>
+  </div>
+  <footer class="tfoot"><button class="btn primary wide" id="t-save">Save to workshop</button></footer>
+</div>
+
+<!-- ================= Bottom sheet ================= -->
+<div class="scrim" id="scrim" hidden></div>
+<div class="sheet" id="sheet" aria-hidden="true" role="dialog"></div>
+<div class="toast" id="toast" role="status"></div>
+
+<nav class="tabbar" id="tabbar" aria-label="Sections">
+  <a href="#home" data-tab="home"><svg viewBox="0 0 24 24"><path d="M4 11l8-7 8 7v9h-5v-6H9v6H4z"/></svg><span>Home</span></a>
+  <a href="#tools" data-tab="tools"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><rect x="13" y="13" width="7" height="7" rx="2"/></svg><span>Tools</span></a>
+  <a href="viewer/index.html" data-tab="viewer"><svg viewBox="0 0 24 24"><path d="M12 3l8 4.5v9L12 21l-8-4.5v-9z"/><path d="M4 7.5l8 4.5 8-4.5M12 12v9"/></svg><span>Viewer</span></a>
+  <a href="#learn" data-tab="learn"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5z"/><path d="M4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/></svg><span>Learn</span></a>
+  <a href="#workshop" data-tab="workshop"><svg viewBox="0 0 24 24"><path d="M14.7 6.3a4 4 0 0 0-5.4 5.4L3 18l3 3 6.3-6.3a4 4 0 0 0 5.4-5.4l-2.6 2.6-2.4-.6-.6-2.4z"/></svg><span>Workshop</span></a>
+</nav>
+
+<script src="mechmate/mechmate-tools.js"></script>
+<script src="app/app.js"></script>
+</body>

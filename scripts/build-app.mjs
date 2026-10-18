@@ -1,7 +1,8 @@
-// Builds app-www/: the website prepared for the Android app (Capacitor).
-// Differences from the website: every library and font that the website loads from a CDN
-// is copied in, so the app works with no internet; links to folders point at index.html;
-// and the page lets content sit under the status bar safely (viewport-fit=cover).
+// Builds app-www/ for the Android app (Capacitor). The app's home is its own interface
+// (app/shell.html → index.html, with app/app.js and app/app.css) built on the MechMate formulas;
+// the viewer, guides and course pages come from the website and get an app bar (app/embed.*).
+// Every library and font the website loads from a CDN is copied in, so the app works offline;
+// links to folders point at index.html; pages can sit under the status bar (viewport-fit=cover).
 import fs from "node:fs";
 import path from "node:path";
 import {fileURLToPath} from "node:url";
@@ -9,7 +10,7 @@ import {fileURLToPath} from "node:url";
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const out = path.join(root, "app-www");
 const nm = path.join(root, "node_modules");
-const SITE = ["index.html", "shared", "mechmate", "viewer", "garage", "personal"];
+const SITE = ["shared", "mechmate", "viewer", "garage", "personal"];
 const SKIP = new Set([path.join("mechmate", "mechmate.test.js")]);
 const THREE_CDN = "https://cdn.jsdelivr.net/npm/three@0.160.0/";
 const OCCT_CDN = "https://cdn.jsdelivr.net/npm/occt-import-js@0.0.23/dist/";
@@ -28,6 +29,8 @@ function copyTree(rel) {
   if (!SKIP.has(rel)) copy(src, path.join(out, rel));
 }
 SITE.forEach(copyTree);
+copy(path.join(root, "app/shell.html"), path.join(out, "index.html"));
+for (const f of ["app.css", "app.js", "embed.css", "embed.js"]) copy(path.join(root, "app", f), path.join(out, "app", f));
 
 /* ---------- vendored libraries ---------- */
 const vendor = path.join(out, "vendor");
@@ -77,6 +80,10 @@ function rewriteHtml(file) {
          if (!p.endsWith("/")) return m;
          return `href="${(p + "index.html").replace(/^\.\/index\.html$/, "index.html")}${h}"`;
        });
+  // Website pages get the app bar and back-button handling.
+  if (up) s = s.replace(`<script src="${up}shared/site.js"></script>`, `<script src="${up}shared/site.js"></script>
+<link rel="stylesheet" href="${up}app/embed.css">
+<script src="${up}app/embed.js"></script>`);
   // Android's file picker filters by MIME type and does not know .step or .stl; allow any file.
   if (rel === path.join("viewer", "index.html")) s = s.replace(/ accept="[^"]*"/, "");
   fs.writeFileSync(file, s);
@@ -84,7 +91,7 @@ function rewriteHtml(file) {
 (function walk(dir) {
   for (const f of fs.readdirSync(dir)) {
     const p = path.join(dir, f);
-    if (fs.statSync(p).isDirectory()) { if (p !== vendor) walk(p); }
+    if (fs.statSync(p).isDirectory()) { if (p !== vendor && p !== path.join(out, "app")) walk(p); }
     else if (f.endsWith(".html")) rewriteHtml(p);
   }
 })(out);
