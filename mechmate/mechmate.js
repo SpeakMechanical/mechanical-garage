@@ -191,7 +191,7 @@ function showProjects() {
     <div class="tool-head"><div><div class="eyebrow">Workspace · <span class="tag pro">Pro</span></div><h2>Saved projects</h2></div>
       <div class="save">${store.list.length ? `<select id="pj-sel" aria-label="Project">${opts}</select>` : ""}<button class="btn ghost sm" id="pj-new" type="button">New project</button>
       ${p ? `<button class="btn ghost sm" id="pj-ren" type="button">Rename</button><button class="btn primary sm" id="pj-pdf" type="button">PDF report</button>` : ""}</div></div>
-    <p class="tool-blurb">Save calculations from any tool into a project, reopen them later, and print the project as a PDF report. Projects are kept in this browser only.</p>
+    <p class="tool-blurb">Save calculations from any tool into a project, reopen them later, and print the project as a PDF report. Projects are kept on this device only.</p>
     <div id="pj-form"></div>
     <div class="proj-list">${p && p.items.length ? p.items.map((it, k) => `
       <div class="item"><div><div class="t">${esc(it.title)}</div><div class="d">${esc(toolName(it.tool))} · ${new Date(it.at).toLocaleString()} · ${esc(it.rows.slice(0, 2).map(r => r[0] + " " + r[1]).join(" · "))}</div></div>
@@ -223,7 +223,14 @@ function report(p) {
     p.items.map(it => `<section><h2>${esc(it.title)}</h2><div class="meta">${esc(toolName(it.tool))} · ${new Date(it.at).toLocaleString()}</div>
       <p><b>Inputs</b></p>${table(it.inputs)}<p><b>Results</b></p>${table(it.rows)}</section>`).join("") +
     `<p class="meta">Calculated with MechMate for first sizing. Check final designs against the relevant codes and supplier data.</p>`;
-  window.print();
+  if (!isApp()) { window.print(); return; }
+  // The Android app cannot print, so it shares the report as a page that Chrome can print to PDF.
+  const doc = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${esc(p.name)}</title>
+<style>body{font-family:system-ui,sans-serif;color:#000;margin:24px}h1{font-size:28px;margin:0 0 4px}h2{font-size:18px;margin:22px 0 6px}
+table{border-collapse:collapse;width:100%;font-size:13px;margin-bottom:8px}th,td{border:1px solid #bbb;padding:4px 8px;text-align:left}.meta{color:#555;font-size:12px}section{break-inside:avoid}</style>
+${$("report").innerHTML}`;
+  saveFile(`${p.name.replace(/[^\w -]+/g, "").trim() || "MechMate report"}.html`, "text/html", doc)
+    .catch(err => alert(`Could not share the report: ${err.message || err}`));
 }
 
 /* ============================================================ plans */
@@ -281,7 +288,7 @@ addEventListener("hashchange", route);
 route();
 
 /* ============================================================ offline */
-if ("serviceWorker" in navigator && location.protocol !== "file:") {
+if ("serviceWorker" in navigator && location.protocol !== "file:" && !isApp()) {   // the app already has every file
   addEventListener("load", () => navigator.serviceWorker.register("sw.js").catch(() => {}));
 }
 })();

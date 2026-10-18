@@ -15,7 +15,7 @@
 }}
 </script>
 <style>
-.vw{display:grid;grid-template-columns:300px 1fr;height:calc(100vh - 59px);min-height:520px}
+.vw{display:grid;grid-template-columns:300px 1fr;height:calc(100vh - 59px - env(safe-area-inset-top));min-height:520px}
 .vpanel{border-right:1px solid var(--rule);background:var(--bg);overflow-y:auto;padding:16px;display:flex;flex-direction:column;gap:16px}
 .vpanel h1{font-size:34px;margin:0}
 .vpanel .lede{font-size:14px;margin:0}

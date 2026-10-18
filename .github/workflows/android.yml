@@ -1,0 +1,66 @@
+name: android
+
+# Builds the Mechanical Garage Android app. Every push makes a debug APK you can install on a
+# phone (download it from the run's Artifacts). When the upload-key secrets are set, it also makes
+# a signed release bundle (.aab) for Google Play. Tags like v1.2.0 attach both to a GitHub release.
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      APP_VERSION_CODE: ${{ github.run_number }}
+      APP_VERSION_NAME: ${{ startsWith(github.ref, 'refs/tags/v') && github.ref_name || format('1.0.{0}', github.run_number) }}
+      HAS_KEY: ${{ secrets.ANDROID_KEYSTORE_BASE64 != '' }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+      - name: Install
+        run: npm ci
+      - name: Test the MechMate formulas
+        run: npm test
+      - name: Build the app's web files and copy them into Android
+        run: npm run sync:android
+      - name: Debug APK
+        working-directory: android
+        run: ./gradlew --no-daemon assembleDebug
+      - name: Signed release bundle
+        if: env.HAS_KEY == 'true'
+        env:
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        working-directory: android
+        run: |
+          echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          ANDROID_KEYSTORE_FILE="$RUNNER_TEMP/upload.jks" ./gradlew --no-daemon bundleRelease assembleRelease
+      - name: Collect
+        run: |
+          mkdir out
+          cp android/app/build/outputs/apk/debug/app-debug.apk "out/mechanical-garage-${APP_VERSION_NAME}-debug.apk"
+          cp android/app/build/outputs/bundle/release/app-release.aab "out/mechanical-garage-${APP_VERSION_NAME}.aab" 2>/dev/null || true
+          cp android/app/build/outputs/apk/release/app-release.apk "out/mechanical-garage-${APP_VERSION_NAME}.apk" 2>/dev/null || true
+          ls -la out
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mechanical-garage-android
+          path: out/*
+      - name: Attach to the release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "$GITHUB_REF_NAME" out/* --title "Mechanical Garage $GITHUB_REF_NAME" --notes "Android app. Install the .apk on a phone, or upload the .aab to Google Play." || gh release upload "$GITHUB_REF_NAME" out/* --clobber

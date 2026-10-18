@@ -535,10 +535,8 @@ function clearMeasure() {
 /* ============================================================ screenshot */
 $("shot-btn").onclick = () => {
   renderer.render(scene, camera);
-  const a = document.createElement("a");
-  a.href = renderer.domElement.toDataURL("image/png");
-  a.download = (state.name.replace(/\.[^.]+$/, "") || "model") + ".png";
-  a.click();
+  saveFile((state.name.replace(/\.[^.]+$/, "") || "model") + ".png", "image/png", renderer.domElement.toDataURL("image/png"))
+    .catch(err => status(`Could not save the screenshot: ${err.message || err}`, true));
 };
 
 // For automated checks: window.cadViewer.open(file) and .stats().

@@ -1,4 +1,4 @@
-// Shared script for the Planform website pages: theme toggle and calculator helpers.
+// Shared script for the Mechanical Garage pages: theme toggle, calculator helpers, and saving files.
 // Load in <head> so the saved theme applies before the page paints.
 
 (function () {
@@ -26,3 +26,23 @@ function card(k, v, state, s) {
 }
 const safety = (n, lo = 1.5) => n >= lo ? "ok" : n >= 1 ? "warn" : "bad";
 function bind(ids, fn) { ids.forEach(id => $(id).addEventListener("input", fn)); fn(); }
+
+// True inside the Android app (Capacitor), false on the website.
+const isApp = () => !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+// Save a file. A browser downloads it; the Android app writes it to its cache and opens the share
+// sheet (Files, Drive, email…), because app web views cannot download. data is text or a data: URL.
+async function saveFile(name, mime, data) {
+  const isDataUrl = typeof data === "string" && data.startsWith("data:");
+  if (isApp()) {
+    const {Filesystem, Share} = window.Capacitor.Plugins;
+    const res = await Filesystem.writeFile(isDataUrl
+      ? {path: name, data: data.slice(data.indexOf(",") + 1), directory: "CACHE"}
+      : {path: name, data, directory: "CACHE", encoding: "utf8"});
+    await Share.share({title: name, url: res.uri, dialogTitle: `Save or share ${name}`});
+    return;
+  }
+  const a = document.createElement("a");
+  a.href = isDataUrl ? data : URL.createObjectURL(new Blob([data], {type: mime}));
+  a.download = name;
+  a.click();
+}

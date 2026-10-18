@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Mechanical Garage</string>
+    <string name="title_activity_main">Mechanical Garage</string>
+    <string name="package_name">com.speakmechanical.mechanicalgarage</string>
+    <string name="custom_url_scheme">com.speakmechanical.mechanicalgarage</string>
+</resources>
