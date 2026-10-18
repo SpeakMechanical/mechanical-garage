@@ -13,6 +13,7 @@ project, `Planform CAD`.
 |---|---|
 | `index.html` | Home page |
 | `mechmate/` | MechMate calculator app. `mechmate-tools.js` holds every formula (no DOM, so Node can test it), `mechmate.js` is the app, `sw.js` makes it work offline, and the manifest and icons make it installable. |
+| `viewer/` | CAD Viewer. `viewer.js` opens mesh formats with three.js loaders and draws DXF; `occt-worker.js` reads STEP, IGES and BREP with OpenCascade (occt-import-js) in a Web Worker. `samples/bracket.step` is the "Try a sample" file. Libraries load from the jsDelivr CDN. |
 | `garage/` | Selection guides (`index.html`: ball screws, bolts, bearings, fits and GD&T) and the Machine Design course (`machine-design.html`) |
 | `personal/` | Personal projects |
 | `shared/` | `site.css` (design and light/dark theme) and `site.js` (theme toggle and calculator helpers) used by every page |

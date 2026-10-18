@@ -29,7 +29,7 @@ jobs:
       - name: Build site
         run: |
           mkdir _site
-          cp -r index.html shared mechmate garage personal _site/
+          cp -r index.html shared mechmate viewer garage personal _site/
           rm _site/mechmate/mechmate.test.js
           touch _site/.nojekyll
       - uses: actions/upload-pages-artifact@v3
