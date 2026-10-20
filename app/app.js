@@ -210,7 +210,7 @@ function renderWorkshop() {
       <p class="blurb">The last ${hist.length} calculations are kept on this phone.</p>` : `<div class="empty">Calculations you make appear here automatically.</div>`;
   } else {
     body.innerHTML = saved.length ? `<ul class="list">${saved.map((x, k) => rowHtml(x, k, "saved")).join("")}</ul>
-      <button class="btn ghost wide" id="ws-report" style="margin-top:14px">Share a report of everything saved</button>`
+      <button class="btn ghost wide" id="ws-report" style="margin-top:14px">Share a PDF report of everything saved</button>`
       : `<div class="empty">Press <b>Save to workshop</b> in any tool to keep a named calculation.</div>`;
     if (saved.length) $("ws-report").onclick = shareReport;
   }
@@ -219,15 +219,84 @@ function renderWorkshop() {
     buzz(); openItem((r.dataset.kind === "saved" ? saved : hist)[+r.dataset.k]);
   });
 }
-function shareReport() {
-  const table = rows => `<table>${rows.map(r => `<tr><th>${esc(r[0])}</th><td>${esc(r[1])}</td><td>${esc(r[2] || "")}</td></tr>`).join("")}</table>`;
-  const doc = `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Mechanical Garage report</title>
-<style>body{font-family:system-ui,sans-serif;margin:24px;color:#111}h1{font-size:26px;margin:0}h2{font-size:18px;margin:22px 0 4px}.m{color:#666;font-size:12px}
-table{border-collapse:collapse;width:100%;font-size:13px}th,td{border:1px solid #ccc;padding:4px 8px;text-align:left}section{break-inside:avoid}</style>
-<h1>Mechanical Garage report</h1><div class="m">${new Date().toLocaleString()} · ${saved.length} calculations</div>
-${saved.map(s => `<section><h2>${esc(s.name)}</h2><div class="m">${esc(tool(s.tool).name)} · ${new Date(s.at).toLocaleString()}</div>${table(s.rows)}</section>`).join("")}
-<p class="m">First-sizing calculations. Check final designs against codes and supplier data.</p>`;
-  saveFile("Mechanical Garage report.html", "text/html", doc).catch(e => toast("Could not share: " + e.message));
+async function shareReport() {
+  toast("Making the PDF…");
+  try {
+    const pdf = await makePdf("Mechanical Garage report", saved.map(x => ({name: x.name, tool: x.tool, at: x.at, rows: x.rows, note: x.note, photos: x.photos})));
+    await saveFile("Mechanical Garage report.pdf", "application/pdf", pdf);
+    buzz("success");
+  } catch (e) { toast("Could not make the PDF: " + (e.message || e)); }
+}
+
+/* ---------- PDF reports (jsPDF with DejaVu Sans, which has ₹ ★ Δ √ ≥ and subscripts) ---------- */
+let pdfLib = null;
+function pdfReady() {
+  if (!pdfLib) pdfLib = (async () => {
+    await new Promise((ok, bad) => { const sc = document.createElement("script"); sc.src = "vendor/jspdf.umd.min.js"; sc.onload = ok; sc.onerror = () => bad(new Error("PDF library missing")); document.head.appendChild(sc); });
+    const b64 = async u => { const a = new Uint8Array(await (await fetch(u)).arrayBuffer()); let str = ""; for (let i = 0; i < a.length; i += 32768) str += String.fromCharCode.apply(null, a.subarray(i, i + 32768)); return btoa(str); };
+    return {jsPDF: window.jspdf.jsPDF, regular: await b64("vendor/fonts/DejaVuSans.ttf"), bold: await b64("vendor/fonts/DejaVuSans-Bold.ttf")};
+  })().catch(e => { pdfLib = null; throw e; });
+  return pdfLib;
+}
+// items: [{name, tool, at, rows: [[label, value, note]], note?, photos?: [dataUrl], drawing?: dataUrl}]
+async function makePdf(title, items) {
+  const {jsPDF, regular, bold} = await pdfReady();
+  const doc = new jsPDF({unit: "mm", format: "a4", compress: true});
+  doc.addFileToVFS("DejaVuSans.ttf", regular); doc.addFont("DejaVuSans.ttf", "DejaVu", "normal");
+  doc.addFileToVFS("DejaVuSans-Bold.ttf", bold); doc.addFont("DejaVuSans-Bold.ttf", "DejaVu", "bold");
+  const W = 210, H = 297, M = 16, inner = W - 2 * M;
+  let y = 0;
+  const header = () => {
+    doc.setFillColor(201, 72, 26); doc.rect(0, 0, W, 30, "F");
+    doc.setTextColor(255); doc.setFont("DejaVu", "bold"); doc.setFontSize(9); doc.text("MECHANICAL GARAGE", M, 11);
+    doc.setFontSize(17); doc.text(title, M, 22);
+    doc.setFont("DejaVu", "normal"); doc.setFontSize(9); doc.text(new Date().toLocaleString(), W - M, 22, {align: "right"});
+    y = 42; doc.setTextColor(27, 30, 34);
+  };
+  const need = h => { if (y + h > H - 18) { doc.addPage(); header(); } };
+  header();
+  for (const it of items) {
+    const t = tool(it.tool);
+    need(24);
+    doc.setFont("DejaVu", "bold"); doc.setFontSize(14); doc.text(doc.splitTextToSize(it.name, inner)[0], M, y); y += 6;
+    doc.setFont("DejaVu", "normal"); doc.setFontSize(9); doc.setTextColor(99, 106, 114);
+    doc.text(`${t ? t.name : it.tool} · ${catName(t ? t.cat : "")} · ${new Date(it.at).toLocaleString()}`, M, y); y += 6;
+    doc.setTextColor(27, 30, 34);
+    if (it.drawing) { const h = Math.min(70, inner * it.drawing.h / it.drawing.w); need(h + 4); doc.addImage(it.drawing.src, "PNG", M + (inner - h * it.drawing.w / it.drawing.h) / 2, y, h * it.drawing.w / it.drawing.h, h); y += h + 4; }
+    for (const [k, v, note] of it.rows) {
+      const vLines = doc.splitTextToSize(String(v), inner - 72), nLines = note ? doc.splitTextToSize(String(note), inner - 72) : [];
+      const h = 5.2 * vLines.length + 4.2 * nLines.length + 3;
+      need(h);
+      doc.setDrawColor(221, 215, 202); doc.line(M, y - 3.6, W - M, y - 3.6);
+      doc.setFontSize(9.5); doc.setTextColor(99, 106, 114); doc.text(doc.splitTextToSize(String(k), 68), M, y);
+      doc.setFont("DejaVu", "bold"); doc.setFontSize(10.5); doc.setTextColor(27, 30, 34); doc.text(vLines, M + 72, y);
+      doc.setFont("DejaVu", "normal");
+      if (nLines.length) { doc.setFontSize(8.5); doc.setTextColor(99, 106, 114); doc.text(nLines, M + 72, y + 5.2 * vLines.length); doc.setTextColor(27, 30, 34); }
+      y += h;
+    }
+    if (it.note) { const lines = doc.splitTextToSize("Note: " + it.note, inner); need(lines.length * 4.6 + 4); doc.setFontSize(9.5); doc.text(lines, M, y + 1); y += lines.length * 4.6 + 4; }
+    for (const ph of it.photos || []) {
+      const img = await loadImg(ph), h = Math.min(80, inner * img.height / img.width), w = h * img.width / img.height;
+      need(h + 4); doc.addImage(ph, "JPEG", M, y, w, h); y += h + 4;
+    }
+    y += 8;
+  }
+  const pages = doc.getNumberOfPages();
+  for (let i = 1; i <= pages; i++) {
+    doc.setPage(i); doc.setFontSize(8); doc.setTextColor(140);
+    doc.text("First-sizing calculations from Mechanical Garage. Check final designs against codes and supplier data.", M, H - 9);
+    doc.text(`${i} / ${pages}`, W - M, H - 9, {align: "right"});
+  }
+  return doc.output("datauristring");
+}
+// Rasterise the open tool's drawing for a PDF.
+async function drawingPng() {
+  const svg = $("visual").querySelector("svg");
+  if (!svg) return null;
+  const {src, w, h} = inlineSvg(svg), img = await loadImg(src);
+  const cv = document.createElement("canvas"); cv.width = w * 3; cv.height = h * 3;
+  const ctx = cv.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cv.width, cv.height); ctx.drawImage(img, 0, 0, cv.width, cv.height);
+  return {src: cv.toDataURL("image/png"), w, h};
 }
 
 /* ============================================================ bottom sheet */
@@ -428,7 +497,17 @@ $("t-share").onclick = () => {
   buzz();
   openSheet(`<h3>Share result</h3>
     <button class="btn primary wide" id="sh-img">Share as image</button>
+    <button class="btn ghost wide" id="sh-pdf" style="margin-top:10px">Share as PDF</button>
     <button class="btn ghost wide" id="sh-txt" style="margin-top:10px">Share as text</button>`);
+  $("sh-pdf").onclick = async () => {
+    closeSheet(); toast("Making the PDF…");
+    try {
+      const t = tool(openId), c = compute(t, vals[openId]);
+      const pdf = await makePdf(t.name, [{name: t.name, tool: t.id, at: Date.now(), drawing: await drawingPng(), rows: c.rows.map(x => [plain(x[0]), plain(x[1]), plain(x[3] || "")])}]);
+      await saveFile(`${t.name.replace(/[^\w ]+/g, "").trim()}.pdf`, "application/pdf", pdf);
+      buzz("success");
+    } catch (e) { toast("Could not make the PDF: " + (e.message || e)); }
+  };
   $("sh-img").onclick = async () => {
     closeSheet(); toast("Making the image…");
     try {

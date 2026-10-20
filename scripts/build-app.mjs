@@ -51,6 +51,9 @@ const seen = new Set();
 })(THREE_ENTRY);
 for (const f of ["occt-import-js.js", "occt-import-js.wasm"]) copy(path.join(nm, "occt-import-js/dist", f), path.join(vendor, "occt", f));
 copy(path.join(nm, "dxf-parser/dist/dxf-parser.js"), path.join(vendor, "dxf-parser.js"));
+// PDF reports in the app: jsPDF, and DejaVu Sans for ₹, ★, Δ, √ and subscripts.
+copy(path.join(nm, "jspdf/dist/jspdf.umd.min.js"), path.join(vendor, "jspdf.umd.min.js"));
+for (const f of ["DejaVuSans.ttf", "DejaVuSans-Bold.ttf"]) copy(path.join(nm, "dejavu-fonts-ttf/ttf", f), path.join(vendor, "fonts", f));
 
 /* ---------- fonts ---------- */
 const FONTS = [
