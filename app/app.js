@@ -424,17 +424,104 @@ $("t-fav").onclick = () => {
   $("t-fav").classList.toggle("on", on); $("t-fav").classList.remove("pop"); void $("t-fav").offsetWidth; $("t-fav").classList.add("pop");
   buzz(on ? "success" : "light"); toast(on ? "Pinned to your tools" : "Removed from favourites");
 };
-$("t-share").onclick = async () => {
+$("t-share").onclick = () => {
   buzz();
-  const t = tool(openId), c = compute(t, vals[openId]);
-  const text = `${t.name}\n` + c.rows.map(r => `• ${plain(r[0])}: ${plain(r[1])}`).join("\n") + `\n\nWorked out with Mechanical Garage`;
-  const S = isApp() && plugin("Share");
-  try {
-    if (S) await S.share({title: t.name, text, dialogTitle: "Share result"});
-    else if (navigator.share) await navigator.share({title: t.name, text});
-    else { await navigator.clipboard.writeText(text); toast("Result copied"); }
-  } catch (e) {}
+  openSheet(`<h3>Share result</h3>
+    <button class="btn primary wide" id="sh-img">Share as image</button>
+    <button class="btn ghost wide" id="sh-txt" style="margin-top:10px">Share as text</button>`);
+  $("sh-img").onclick = async () => {
+    closeSheet(); toast("Making the image…");
+    try {
+      const t = tool(openId), png = await resultCard(t, compute(t, vals[openId]));
+      await saveFile(`${t.name.replace(/[^\w ]+/g, "").trim()}.png`, "image/png", png);
+      buzz("success");
+    } catch (e) { toast("Could not make the image: " + (e.message || e)); }
+  };
+  $("sh-txt").onclick = async () => {
+    closeSheet();
+    const t = tool(openId), c = compute(t, vals[openId]);
+    const text = `${t.name}\n` + c.rows.map(r => `• ${plain(r[0])}: ${plain(r[1])}`).join("\n") + `\n\nWorked out with Mechanical Garage`;
+    const S = isApp() && plugin("Share");
+    try {
+      if (S) await S.share({title: t.name, text, dialogTitle: "Share result"});
+      else if (navigator.share) await navigator.share({title: t.name, text});
+      else { await navigator.clipboard.writeText(text); toast("Result copied"); }
+    } catch (e) {}
+  };
 };
+
+/* ---------- result image card ---------- */
+// Copy each drawn SVG element's computed colours, sizes and current spin into inline styles,
+// so the drawing still looks right when rasterised outside the page.
+function inlineSvg(svg) {
+  const clone = svg.cloneNode(true), live = [svg, ...svg.querySelectorAll("*")], copy = [clone, ...clone.querySelectorAll("*")];
+  live.forEach((el, i) => {
+    const cs = getComputedStyle(el), s = copy[i].style;
+    for (const p of ["fill", "stroke", "stroke-width", "stroke-dasharray", "opacity", "font-family", "font-size", "font-weight", "transform", "transform-origin", "transform-box"]) s.setProperty(p, cs.getPropertyValue(p));
+    s.setProperty("animation", "none"); s.setProperty("transition", "none");
+  });
+  const vb = svg.viewBox.baseVal;
+  clone.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  clone.setAttribute("width", vb.width * 3); clone.setAttribute("height", vb.height * 3);
+  return {src: "data:image/svg+xml;charset=utf-8," + encodeURIComponent(new XMLSerializer().serializeToString(clone)), w: vb.width, h: vb.height};
+}
+const loadImg = src => new Promise((ok, bad) => { const i = new Image(); i.onload = () => ok(i); i.onerror = () => bad(new Error("drawing")); i.src = src; });
+function wrap(ctx, text, x, y, maxW, lh, maxLines = 3) {
+  const words = String(text).split(/\s+/); let line = "", n = 0;
+  for (const w of words) {
+    const test = line ? line + " " + w : w;
+    if (ctx.measureText(test).width > maxW && line) { ctx.fillText(line, x, y); y += lh; line = w; if (++n >= maxLines - 1) break; }
+    else line = test;
+  }
+  if (line) { ctx.fillText(line, x, y); y += lh; }
+  return y;
+}
+async function resultCard(t, c) {
+  await document.fonts.ready;
+  const W = 1080, H = 1350, cv = document.createElement("canvas"); cv.width = W; cv.height = H;
+  const ctx = cv.getContext("2d");
+  const accent = getComputedStyle($("hero")).backgroundImage.match(/rgba?\([^)]+\)/)?.[0] || "#c9481a";
+  const rows = c.rows || [], hi = heroIndex(t, rows), hero = rows[hi] || ["", "—"];
+  // background
+  ctx.fillStyle = "#f4f1ea"; ctx.fillRect(0, 0, W, H);
+  const g = ctx.createLinearGradient(0, 0, W, 560); g.addColorStop(0, accent); g.addColorStop(1, "#1b1e22");
+  ctx.fillStyle = g; ctx.beginPath(); ctx.roundRect(40, 40, W - 80, 560, 48); ctx.fill();
+  ctx.fillStyle = "rgba(255,255,255,.08)"; ctx.beginPath(); ctx.arc(W - 120, 520, 260, 0, Math.PI * 2); ctx.fill();
+  // brand
+  ctx.fillStyle = "#fff"; ctx.font = '600 30px "IBM Plex Sans", sans-serif'; ctx.fillText("⚙  MECHANICAL GARAGE", 90, 120);
+  ctx.globalAlpha = .8; ctx.font = '500 28px "IBM Plex Mono", monospace'; ctx.fillText(catName(t.cat).toUpperCase(), 90, 185); ctx.globalAlpha = 1;
+  ctx.font = '400 64px "Instrument Serif", serif'; wrap(ctx, t.name, 90, 255, W - 180, 70, 2);
+  ctx.globalAlpha = .9; ctx.font = '500 32px "IBM Plex Sans", sans-serif'; ctx.fillText(plain(hero[0]), 90, 380); ctx.globalAlpha = 1;
+  let size = 150; ctx.font = `400 ${size}px "Instrument Serif", serif`;
+  while (ctx.measureText(plain(hero[1])).width > W - 180 && size > 60) { size -= 8; ctx.font = `400 ${size}px "Instrument Serif", serif`; }
+  ctx.fillText(plain(hero[1]), 86, 380 + size * 0.95);
+  if (hero[3]) { ctx.globalAlpha = .85; ctx.font = '400 28px "IBM Plex Sans", sans-serif'; wrap(ctx, plain(hero[3]), 90, 560, W - 180, 36, 1); ctx.globalAlpha = 1; }
+  // drawing
+  let y = 650;
+  const svg = $("visual").querySelector("svg");
+  if (svg) {
+    const {src, w, h} = inlineSvg(svg), img = await loadImg(src);
+    const dw = W - 160, dh = Math.min(380, dw * h / w);
+    ctx.fillStyle = "#fffdf8"; ctx.beginPath(); ctx.roundRect(40, y - 10, W - 80, dh + 40, 36); ctx.fill();
+    const scale = Math.min(dw / w, 380 / h);
+    ctx.drawImage(img, (W - w * scale) / 2, y + 10, w * scale, h * scale);
+    y += dh + 70;
+  }
+  // key numbers
+  ctx.fillStyle = "#1b1e22";
+  const others = rows.filter((_, i) => i !== hi).slice(0, svg ? 3 : 6);
+  for (const [k, v] of others) {
+    if (y > H - 170) break;
+    ctx.font = '400 28px "IBM Plex Sans", sans-serif'; ctx.fillStyle = "#636a72"; ctx.fillText(plain(k), 90, y);
+    ctx.font = '500 38px "IBM Plex Mono", monospace'; ctx.fillStyle = "#1b1e22"; wrap(ctx, plain(v), 90, y + 48, W - 180, 44, 1);
+    y += 112;
+  }
+  // footer
+  ctx.fillStyle = "#636a72"; ctx.font = '400 26px "IBM Plex Sans", sans-serif';
+  ctx.fillText("Worked out with the Mechanical Garage app", 90, H - 70);
+  ctx.textAlign = "right"; ctx.fillText(new Date().toLocaleDateString(undefined, {day: "numeric", month: "short", year: "numeric"}), W - 90, H - 70);
+  return cv.toDataURL("image/png");
+}
 $("t-save").onclick = () => {
   buzz();
   openSheet(`<h3>Save to workshop</h3><label>Name<input id="sv-name" type="text" value="${esc(tool(openId).name)}" maxlength="60"></label><button class="btn primary wide" id="sv-ok">Save</button>`);
