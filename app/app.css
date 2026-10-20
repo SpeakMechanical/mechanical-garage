@@ -182,3 +182,7 @@ svg{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-l
 @media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 .vcard rect.bar{stroke:none}
 .tool .tfoot .btn.primary{background:var(--c,var(--accent));color:#fff}
+.slide{animation:slide var(--t,2s) ease-in-out infinite alternate}
+@keyframes slide{to{transform:translateX(var(--dx,40px))}}
+.flow{stroke-dasharray:7 5;animation:flow var(--t,1s) linear infinite}
+@keyframes flow{to{stroke-dashoffset:-12}}

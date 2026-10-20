@@ -708,6 +708,143 @@ const VISUALS = {
       <text x="140" y="44" class="lbl" style="font-size:13px">${f(r.P, "power", 3)}</text>
       <text x="140" y="68" class="lbl" style="font-size:13px">${f(r.T, "torque", 3)}</text>
       <text x="140" y="92" class="lbl" style="font-size:13px">${f.n(r.n)} rpm</text></svg>`;
+  },
+  chain(r, v, f) {
+    const k = 120 / Math.max(r.d1, r.d2), R1 = Math.max(14, r.d1 / 2 * k), R2 = Math.max(14, r.d2 / 2 * k), cx1 = 26 + R1, cx2 = 294 - R2, cy = 74;
+    const sprocket = (cx, R, z) => { const n = Math.min(z, 48), pts = []; for (let i = 0; i < n * 2; i++) { const a = Math.PI * i / n, rr = i % 2 ? R - 5 : R + 2; pts.push(`${(cx + rr * Math.cos(a)).toFixed(1)},${(cy + rr * Math.sin(a)).toFixed(1)}`); } return pts.join(" "); };
+    const one = (cx, R, z, t, col) => `<g class="spin" style="--t:${Math.min(t, 40).toFixed(2)}s"><polygon points="${sprocket(cx, R, z)}" fill="color-mix(in srgb,${col} 18%,var(--surface))" stroke="${col}" stroke-width="1.5"/><circle cx="${cx}" cy="${cy}" r="${R * 0.3}" fill="var(--surface)" stroke="${col}"/></g>`;
+    return `<svg viewBox="0 0 320 150" role="img" aria-label="Chain drive">
+      <path class="flow" d="M${cx1} ${cy - R1 - 2}L${cx2} ${cy - R2 - 2}" stroke="var(--ink)" stroke-width="5" style="--t:.6s"/>
+      <path class="flow" d="M${cx2} ${cy + R2 + 2}L${cx1} ${cy + R1 + 2}" stroke="var(--ink)" stroke-width="5" style="--t:.6s"/>
+      ${one(cx1, R1, r.z1, 2, "var(--c)")}${one(cx2, R2, r.z2, 2 * r.ratio, "var(--muted)")}
+      <text x="160" y="146" text-anchor="middle" class="lbl">${r.z1}T → ${r.z2}T · ${r.Lp} pitches · pull ${f(r.F, "force", 3)}</text></svg>`;
+  },
+  screw(r, v, f) {
+    const threads = [...Array(26)].map((_, i) => `<path d="M${30 + i * 10} 52l6 26" stroke="var(--muted)" stroke-width="1.4"/>`).join("");
+    const t = Math.min(8, Math.max(1.2, 60 / Math.max(r.rpm, 1) * 4));
+    return `<svg viewBox="0 0 320 140" role="img" aria-label="Lead screw and nut">
+      <rect x="24" y="52" width="272" height="26" rx="5" fill="var(--surface-2)" stroke="var(--rule-strong)"/>${threads}
+      <g class="slide" style="--t:${t.toFixed(2)}s;--dx:150px"><rect x="54" y="40" width="64" height="50" rx="9" fill="color-mix(in srgb,var(--c) 30%,var(--surface))" stroke="var(--c)" stroke-width="2"/>
+      <path d="M86 18v18M80 30l6 8 6-8" stroke="var(--c)" stroke-width="2.2"/><text x="86" y="14" text-anchor="middle" class="lbl">${f(v.F, "force", 3)}</text></g>
+      <text x="160" y="112" text-anchor="middle" class="lbl">${f(r.Traise, "torqueS", 3)} to drive · ${f.n(r.eff * 100, 3)}% efficient</text>
+      <text x="160" y="130" text-anchor="middle" class="lbl" style="fill:${r.lock ? "var(--ok)" : "var(--warn)"}">${r.lock ? "Self-locking: holds the load" : "Not self-locking: needs a brake"}</text></svg>`;
+  },
+  motor(r, v, f) {
+    const W = 320, H = 176, x0 = 44, x1 = 306, T = [r.Ta, r.Tc, r.Td, r.Th];
+    const hi = Math.max(...T, r.rms) * 1.12 || 1, lo = Math.min(0, ...T) * 1.12, ys = q => 16 + (hi - q) / (hi - lo) * 96, yZ = ys(0);
+    const cyc = 2 * v.ta + v.tc + v.tdw, sx = t => x0 + (x1 - x0) * t / cyc;
+    const seg = [[0, v.ta, r.Ta], [v.ta, v.ta + v.tc, r.Tc], [v.ta + v.tc, 2 * v.ta + v.tc, r.Td], [2 * v.ta + v.tc, cyc, r.Th]];
+    let d = `M${sx(0)} ${yZ}`; seg.forEach(([a, b, q]) => { d += `L${sx(a)} ${ys(q)}L${sx(b)} ${ys(q)}`; }); d += `L${sx(cyc)} ${yZ}`;
+    const sb = 150, st = 128, speed = `M${sx(0)} ${sb}L${sx(v.ta)} ${st}L${sx(v.ta + v.tc)} ${st}L${sx(2 * v.ta + v.tc)} ${sb}L${sx(cyc)} ${sb}`;
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Motor torque over one move">
+      <path d="M${x0} 14V114M${x0} ${yZ}H${x1}" stroke="var(--rule-strong)"/>
+      <path d="${d}" fill="color-mix(in srgb,var(--c) 18%,transparent)" stroke="var(--c)" stroke-width="2.2"/>
+      <path d="M${x0} ${ys(r.rms)}H${x1}" stroke="var(--ink)" stroke-dasharray="5 4"/><text x="${x1}" y="${ys(r.rms) - 4}" text-anchor="end" class="lbl">RMS ${f(r.rms, "torqueS", 3)}</text>
+      <text x="${sx(v.ta) + 4}" y="${ys(r.Ta) + 10}" class="lbl">peak ${f(r.peak, "torqueS", 3)}</text>
+      <text x="${x0 - 4}" y="22" text-anchor="end">torque</text><text x="${x0 - 4}" y="${yZ + 3}" text-anchor="end">0</text>
+      <path d="${speed}" stroke="var(--muted)" stroke-width="1.6"/><text x="${x0 - 4}" y="${st + 8}" text-anchor="end">speed</text>
+      <text x="${(x0 + x1) / 2}" y="${H - 6}" text-anchor="middle">accelerate · run · brake · dwell (${f.n(cyc, 2)} s cycle)</text></svg>`;
+  },
+  pressfit(r, v, f) {
+    if (r.err) return "";
+    const cx = 160, cy = 78, Ro = 64, Ri = Ro * v.D / v.Do, Rb = v.di > 0 ? Ri * v.di / v.D : 0;
+    const util = r.nHub ? 1 / r.nHub : 0, col = util < 0.67 ? "var(--ok)" : util < 1 ? "var(--warn)" : "var(--bad)";
+    const arrows = [...Array(8)].map((_, i) => { const a = i * Math.PI / 4, c = Math.cos(a), s = Math.sin(a);
+      return `<path d="M${cx + (Ri + 12) * c} ${cy + (Ri + 12) * s}L${cx + (Ri + 3) * c} ${cy + (Ri + 3) * s}" stroke="var(--ink)" stroke-width="1.8"/>`; }).join("");
+    return `<svg viewBox="0 0 320 170" role="img" aria-label="Hub on shaft with contact pressure">
+      <circle cx="${cx}" cy="${cy}" r="${(Ro + Ri) / 2}" fill="none" stroke="color-mix(in srgb,${col} 55%,var(--surface))" stroke-width="${Ro - Ri}"/>
+      <circle cx="${cx}" cy="${cy}" r="${Ri}" fill="color-mix(in srgb,var(--muted) 25%,var(--surface))" stroke="var(--muted)"/>
+      ${Rb ? `<circle cx="${cx}" cy="${cy}" r="${Rb}" fill="var(--bg)" stroke="var(--muted)"/>` : ""}${arrows}
+      <text x="${cx}" y="${cy + 4}" text-anchor="middle" class="lbl">${f(r.pMax, "stress", 3)}</text>
+      <text x="160" y="160" text-anchor="middle" class="lbl">Hub stress ${f(r.vmHub, "stress", 3)} · ${r.nHub ? f.n(util * 100, 2) + "% of yield" : "brittle hub"} · holds ${f(r.torque, "torque", 3)}</text></svg>`;
+  },
+  bearing(r, v, f) {
+    const cx = 70, cy = 70, ratio = Math.min(r.Lh / v.Lt, 2), col = ratio >= 1 ? "var(--ok)" : "var(--bad)";
+    const balls = [...Array(9)].map((_, i) => { const a = i * 2 * Math.PI / 9; return `<circle cx="${cx + 38 * Math.cos(a)}" cy="${cy + 38 * Math.sin(a)}" r="8.5" fill="var(--surface)" stroke="var(--ink)" stroke-width="1.5"/>`; }).join("");
+    const t = Math.min(20, Math.max(0.6, 1500 / Math.max(v.n, 1) * 1.6));
+    return `<svg viewBox="0 0 320 140" role="img" aria-label="Bearing and its life against the target">
+      <circle cx="${cx}" cy="${cy}" r="52" fill="none" stroke="var(--c)" stroke-width="8"/><g class="spin" style="--t:${(t * 2.4).toFixed(2)}s">${balls}</g>
+      <g class="spin" style="--t:${t.toFixed(2)}s"><circle cx="${cx}" cy="${cy}" r="27" fill="none" stroke="var(--c)" stroke-width="6"/><path d="M${cx} ${cy - 24}v6" stroke="var(--ink)" stroke-width="2"/></g>
+      <text x="150" y="40" class="lbl">Life ${f.n(r.Lh)} h</text>
+      <rect x="150" y="50" width="150" height="14" rx="7" fill="var(--surface-2)"/><rect class="bar" x="150" y="50" height="14" rx="7" width="${75 * ratio}" fill="${col}"/>
+      <path d="M225 44v26" stroke="var(--ink)" stroke-width="2"/><text x="225" y="84" text-anchor="middle">target ${f.n(v.Lt)} h</text>
+      <text x="150" y="112" class="lbl">P = ${f(r.P, "force", 3)} · s₀ = ${f.n(r.s0, 3)}</text></svg>`;
+  },
+  cylinder(r, v, f) {
+    const L = 170, strokePx = Math.min(110, 60 + v.stroke / 10), bore = 20 + Math.min(40, v.D / 3), rod = Math.max(5, bore * v.d / v.D), cy = 66;
+    return `<svg viewBox="0 0 320 150" role="img" aria-label="Cylinder extending and retracting">
+      <rect x="20" y="${cy - bore / 2}" width="${L}" height="${bore}" rx="6" fill="var(--surface-2)" stroke="var(--ink)" stroke-width="1.6"/>
+      <g class="slide" style="--t:1.6s;--dx:${(strokePx * 0.75).toFixed(0)}px">
+        <rect x="${40}" y="${cy - bore / 2 + 3}" width="16" height="${bore - 6}" rx="3" fill="var(--c)"/>
+        <rect x="56" y="${cy - rod / 2}" width="${L + 20}" height="${rod}" rx="${rod / 2}" fill="color-mix(in srgb,var(--c) 30%,var(--surface))" stroke="var(--c)" stroke-width="1.4"/>
+        <circle cx="${56 + L + 20}" cy="${cy}" r="${rod * 0.8}" fill="var(--surface)" stroke="var(--c)" stroke-width="2"/></g>
+      <text x="20" y="${cy + bore / 2 + 22}" class="lbl">Push ${f(r.Fext, "force", 3)} · pull ${f(r.Fret, "force", 3)}</text>
+      <text x="20" y="${cy + bore / 2 + 40}" class="lbl" style="fill:${r.sf >= 3.5 ? "var(--ok)" : "var(--bad)"}">Rod buckling safety ${f.n(r.sf, 3)}×</text></svg>`;
+  },
+  feeds(r, v, f) {
+    const cx = 80, cy = 72, t = Math.min(10, Math.max(0.15, 600 / Math.max(r.n, 1)));
+    const body = v.op === "turn"
+      ? `<g class="spin" style="--t:${t.toFixed(2)}s"><circle cx="${cx}" cy="${cy}" r="46" fill="color-mix(in srgb,var(--muted) 25%,var(--surface))" stroke="var(--ink)" stroke-width="1.6"/>${[0, 120, 240].map(a => `<rect x="${cx - 7}" y="${cy - 54}" width="14" height="20" rx="3" fill="var(--ink)" transform="rotate(${a} ${cx} ${cy})"/>`).join("")}<circle cx="${cx}" cy="${cy}" r="18" fill="var(--c)"/></g>
+         <path d="M${cx + 20} ${cy + 30}l46 -8 v22z" fill="var(--c)" stroke="var(--ink)"/>`
+      : `<g class="spin" style="--t:${t.toFixed(2)}s">${[...Array(v.op === "mill" ? Math.min(8, Math.round(v.z) || 4) : 2)].map((_, i, a) => `<path d="M${cx} ${cy}L${cx + 44 * Math.cos(i * 2 * Math.PI / a.length)} ${cy + 44 * Math.sin(i * 2 * Math.PI / a.length)}" stroke="var(--c)" stroke-width="9" stroke-linecap="round"/>`).join("")}<circle cx="${cx}" cy="${cy}" r="14" fill="var(--ink)"/></g>`;
+    return `<svg viewBox="0 0 320 150" role="img" aria-label="Spindle turning">
+      ${body}
+      <text x="170" y="40" class="lbl" style="font-size:13px">${f.n(r.n)} rpm</text>
+      <text x="170" y="62" class="lbl">feed ${f(r.vf, "feedRate", 3)}</text>
+      <text x="170" y="82" class="lbl">${f(r.Pc, "power", 3)} at the spindle</text>
+      <text x="170" y="102" class="lbl">${f(r.Q, "mrr", 3)} removed</text></svg>`;
+  },
+  bend(r, v, f) {
+    const s = 120 / Math.max(v.A, v.B, 1), a = Math.PI - v.ang * Math.PI / 180, R = Math.max(3, v.R * s), T = Math.max(3, v.T * s);
+    const ox = 60, oy = 100, A = Math.max(10, v.A * s - R - T), B = Math.max(10, v.B * s - R - T);
+    // flange A along +x from the bend; flange B turned by the bend angle
+    const bx = ox + A, by = oy, cxr = bx, cyr = by - R - T / 2;
+    const dir = [Math.cos(-Math.PI / 2 + (Math.PI - a)), Math.sin(-Math.PI / 2 + (Math.PI - a))];
+    const ang0 = Math.PI / 2, ang1 = Math.PI / 2 - (Math.PI - a), rm = R + T / 2;
+    const ex = cxr + rm * Math.cos(ang1), ey = cyr + rm * Math.sin(ang1);
+    const path = `M${ox} ${oy - T / 2}L${bx} ${by - T / 2}A${rm} ${rm} 0 0 0 ${ex} ${ey}L${ex + B * Math.cos(ang1 - Math.PI / 2)} ${ey + B * Math.sin(ang1 - Math.PI / 2)}`;
+    const flat = 280 * Math.min(1, r.flat / (v.A + v.B));
+    return `<svg viewBox="0 0 320 170" role="img" aria-label="Bent sheet and its flat length">
+      <path d="${path}" stroke="var(--c)" stroke-width="${T}" stroke-linecap="butt"/>
+      <text x="${ox}" y="${oy + 20}" class="lbl">A ${f(v.A, "len", 3)}</text>
+      <rect x="20" y="138" width="${flat}" height="10" rx="2" fill="color-mix(in srgb,var(--c) 35%,var(--surface))" stroke="var(--c)"/>
+      <path d="M${20 + flat * v.A / (v.A + v.B) - r.BA * flat / r.flat / 2} 134v18M${20 + flat * v.A / (v.A + v.B) + r.BA * flat / r.flat / 2} 134v18" stroke="var(--ink)" stroke-dasharray="2 2"/>
+      <text x="20" y="166" class="lbl">Flat length ${f(r.flat, "len", 4)} · K ${f.n(r.K, 3)}</text></svg>`;
+  },
+  weight(r, v, f) {
+    const cx = 80, cy = 74, big = {round: v.d, hex: v.s * 1.155, rect: Math.max(v.b, v.h), tube: v.D, rhs: Math.max(v.B, v.H), angle: v.a}[v.shape] || 1, k = 100 / big;
+    const col = "color-mix(in srgb,var(--c) 35%,var(--surface))";
+    let shape = "";
+    if (v.shape === "round") shape = `<circle cx="${cx}" cy="${cy}" r="${v.d * k / 2}" fill="${col}" stroke="var(--c)" stroke-width="2"/>`;
+    else if (v.shape === "hex") { const R = v.s * 1.155 * k / 2; shape = `<polygon points="${[...Array(6)].map((_, i) => `${cx + R * Math.cos(i * Math.PI / 3)},${cy + R * Math.sin(i * Math.PI / 3)}`).join(" ")}" fill="${col}" stroke="var(--c)" stroke-width="2"/>`; }
+    else if (v.shape === "rect") shape = `<rect x="${cx - v.b * k / 2}" y="${cy - v.h * k / 2}" width="${v.b * k}" height="${Math.max(2, v.h * k)}" fill="${col}" stroke="var(--c)" stroke-width="2"/>`;
+    else if (v.shape === "tube") shape = `<circle cx="${cx}" cy="${cy}" r="${(v.D - v.t) * k / 2}" fill="none" stroke="var(--c)" stroke-width="${Math.max(2, v.t * k)}"/>`;
+    else if (v.shape === "rhs") shape = `<rect x="${cx - (v.B - v.t) * k / 2}" y="${cy - (v.H - v.t) * k / 2}" width="${(v.B - v.t) * k}" height="${(v.H - v.t) * k}" fill="none" stroke="var(--c)" stroke-width="${Math.max(2, v.t * k)}"/>`;
+    else shape = `<path d="M${cx - 50} ${cy - 50}V${cy + 50}H${cx + 50}" fill="none" stroke="var(--c)" stroke-width="${Math.max(2, v.t * k)}" stroke-linejoin="miter"/>`;
+    return `<svg viewBox="0 0 320 150" role="img" aria-label="Cross-section to scale">
+      ${shape}
+      <text x="170" y="52" class="lbl" style="font-size:16px">${f(r.each, "mass", 4)}</text>
+      <text x="170" y="74" class="lbl">${f(r.perM, "massLen", 3)}</text>
+      <text x="170" y="94" class="lbl">section ${f(r.A, "area", 3)}</text></svg>`;
+  },
+  fits(r, v, f) {
+    if (r.err) return "";
+    const vals = [r.hu, r.hl, r.su, r.sl, 0], top = Math.max(...vals), bot = Math.min(...vals), span = Math.max(top - bot, 1);
+    const y = um => 20 + (top - um) / span * 100, z = y(0);
+    const box = (x, hi, lo, col, lbl) => `<rect x="${x}" y="${y(hi)}" width="70" height="${Math.max(2, y(lo) - y(hi))}" rx="4" fill="color-mix(in srgb,${col} 30%,var(--surface))" stroke="${col}" stroke-width="1.8"/><text x="${x + 35}" y="${y(hi) - 4}" text-anchor="middle" class="lbl">${lbl}</text>`;
+    const kind = r.cMin >= 0 ? "Clearance" : r.cMax <= 0 ? "Interference" : "Transition";
+    return `<svg viewBox="0 0 320 150" role="img" aria-label="Tolerance zones of hole and shaft">
+      <path d="M20 ${z}H300" stroke="var(--ink)" stroke-width="1.6"/><text x="300" y="${z - 4}" text-anchor="end">Ø${v.D} (0 µm)</text>
+      ${box(70, r.hu, r.hl, "var(--c)", `H7 ${r.hl}…+${r.hu}`)}${box(170, r.su, r.sl, "var(--muted)", `${v.s} ${r.sl > 0 ? "+" : ""}${r.sl}…${r.su > 0 ? "+" : ""}${r.su}`)}
+      <text x="160" y="144" text-anchor="middle" class="lbl">${kind} fit: from ${r.cMin >= 0 ? r.cMin + " µm clearance" : -r.cMin + " µm interference"} to ${r.cMax >= 0 ? r.cMax + " µm clearance" : -r.cMax + " µm interference"}</text></svg>`;
+  },
+  thermal(r, v, f) {
+    const L0 = 220, grow = Math.max(-60, Math.min(60, r.dL / v.L * 1000 * 60)), hot = r.dT > 0;
+    return `<svg viewBox="0 0 320 120" role="img" aria-label="Bar growing with temperature">
+      <rect x="30" y="30" width="${L0}" height="18" rx="4" fill="var(--surface-2)" stroke="var(--rule-strong)"/><text x="30" y="24">at ${f(v.T1, "temp", 3)}</text>
+      <rect class="bar" x="30" y="62" width="${L0 + grow}" height="18" rx="4" fill="color-mix(in srgb,${hot ? "var(--bad)" : "var(--c-strength)"} 35%,var(--surface))" stroke="${hot ? "var(--bad)" : "var(--c-strength)"}"/>
+      <text x="30" y="96">at ${f(v.T2, "temp", 3)} (growth exaggerated)</text>
+      <text x="${30 + L0 + grow}" y="58" text-anchor="end" class="lbl">${r.dL >= 0 ? "+" : ""}${f(r.dL, "len", 3)}</text></svg>`;
   }
 };
 
