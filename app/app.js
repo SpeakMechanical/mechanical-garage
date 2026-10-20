@@ -68,6 +68,7 @@ const ICON = {
   ac: '<rect x="3" y="5" width="18" height="8" rx="2"/><path d="M7 10h10M8 16l-1 3M12 16v3M16 16l1 3"/>',
   star: '<path d="M12 3.5l2.6 5.4 5.9.8-4.3 4.1 1 5.8L12 16.9l-5.2 2.7 1-5.8-4.3-4.1 5.9-.8z"/>',
   trash: '<path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13"/>',
+  car: '<path d="M3 16v-3l2-1 3-4h8l4 4 2 1v3"/><circle cx="7.5" cy="16.5" r="2"/><circle cx="16.5" cy="16.5" r="2"/>',
   book: '<path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v15H6.5A2.5 2.5 0 0 0 4 20.5zM4 20.5A2.5 2.5 0 0 0 6.5 23H20v-5"/>'
 };
 const icon = k => `<svg viewBox="0 0 24 24">${ICON[k] || ICON.gear}</svg>`;
@@ -101,10 +102,10 @@ function route() {
     if (tool(id)) { if (!homeDrawn) { renderHome(); homeDrawn = true; } openTool(id); return; }   // fill the screen behind the tool
   }
   closeTool(true);
-  tab = ["home", "tools", "learn", "workshop"].includes(h) ? h : "home";
+  tab = ["home", "tools", "learn", "workshop", "cars"].includes(h) ? h : "home";
   document.querySelectorAll(".screen").forEach(s => s.hidden = s.dataset.tab !== tab);
   document.querySelectorAll(".tabbar a").forEach(a => { if (a.dataset.tab === tab) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
-  ({home: renderHome, tools: renderTools, learn: renderLearn, workshop: renderWorkshop})[tab]();
+  ({home: renderHome, tools: renderTools, learn: renderLearn, workshop: renderWorkshop, cars: renderCars})[tab]();
   if (tab === "home") homeDrawn = true;
 }
 addEventListener("hashchange", route);
@@ -168,7 +169,9 @@ function renderTools() {
   $("cats").querySelectorAll(".chip").forEach(b => b.onclick = () => { buzz(); catFilter = b.dataset.c; renderTools(); });
   const q = $("q").value.trim().toLowerCase();
   const list = TOOLS.filter(t => (catFilter === "all" || t.cat === catFilter) && (!q || q.split(/\s+/).every(w => (t.name + " " + t.blurb + " " + catName(t.cat)).toLowerCase().includes(w))));
-  $("tool-grid").innerHTML = list.map(t => tileHtml(t)).join("") || `<div class="empty" style="grid-column:1/-1">No tool matches “${esc(q)}”.</div>`;
+  const carTile = (catFilter === "all" && (!q || "car cost compare cars ownership service parts swap".includes(q))) ?
+    `<a class="tile press cat-strength" href="#cars"><span class="ic">${icon("car")}</span><b>Car cost</b><small>Compare two cars over the years you keep them, and find smart swaps.</small></a>` : "";
+  $("tool-grid").innerHTML = (carTile + list.map(t => tileHtml(t)).join("")) || `<div class="empty" style="grid-column:1/-1">No tool matches “${esc(q)}”.</div>`;
 }
 $("q").addEventListener("input", renderTools);
 
@@ -298,6 +301,72 @@ async function drawingPng() {
   const ctx = cv.getContext("2d"); ctx.fillStyle = "#fff"; ctx.fillRect(0, 0, cv.width, cv.height); ctx.drawImage(img, 0, 0, cv.width, cv.height);
   return {src: cv.toDataURL("image/png"), w, h};
 }
+
+
+/* ============================================================ car cost */
+const CC = window.CarCost;
+let carState = Object.assign({a: "a6", b: "city", ea: {}, eb: {}, pa: [], pb: [], common: {years: 5, kmYear: 12000, petrol: CC.FUEL.petrol, diesel: CC.FUEL.diesel}}, store.get("cars", {}));
+const carOf = side => ({...CC.CARS[carState[side]], ...carState["e" + side]});
+const inr = x => "₹" + Math.round(x).toLocaleString("en-IN");
+const lakh = x => Math.abs(x) >= 1e5 ? `₹${(x / 1e5).toLocaleString("en-IN", {maximumFractionDigits: 2})} lakh` : inr(x);
+const CAR_PARTS = [["depreciation", "Value lost", "#1c7ed6"], ["fuel", "Fuel", "#e8590c"], ["insurance", "Insurance", "#ae3ec9"], ["service", "Service", "#2f9e44"], ["repairs", "Repairs", "#d6336c"], ["oneTime", "Transfer, tax, fixes", "#868e96"]];
+const CAR_FIELDS = [["price", "Price, ₹"], ["resalePct", "Resale after 5 yrs, % of price"], ["kmpl", "Mileage, km per litre"], ["insurance", "Insurance, ₹/yr"], ["service", "Service, ₹/yr"], ["repairs", "Repairs, ₹/yr"], ["oneTime", "Transfer, tax, first fixes, ₹"]];
+function renderCars() {
+  const c = carState.common, A = carOf("a"), B = carOf("b");
+  const ra = CC.tco(A, c, carState.pa), rb = CC.tco(B, c, carState.pb), diff = ra.total - rb.total;
+  const max = Math.max(ra.before, rb.before, 1);
+  const bar = r => `<div class="stack">${CAR_PARTS.map(([k, , col]) => `<i style="width:${(r.parts[k] / max * 100).toFixed(2)}%;background:${col}"></i>`).join("")}</div>`;
+  const box = (side, car, r) => `<div class="carbox ${side}">
+    <div class="tag2">CAR ${side.toUpperCase()}</div>
+    <select data-car="${side}">${Object.entries(CC.CARS).map(([k, x]) => `<option value="${k}"${k === carState[side] ? " selected" : ""}>${esc(x.name)}</option>`).join("")}</select>
+    <div class="big">${lakh(r.total)}</div><div class="sm">over ${c.years} years${r.saving ? ` · swaps save ${lakh(r.saving)}` : ""}</div>
+    <div class="sm">${inr(r.perMonth)} a month · ${inr(r.perKm)} per km</div>
+    <details><summary>Edit numbers</summary>
+      <label>Fuel<select data-cf="${side}:fuel"><option value="petrol"${car.fuel === "petrol" ? " selected" : ""}>Petrol</option><option value="diesel"${car.fuel === "diesel" ? " selected" : ""}>Diesel</option></select></label>
+      ${CAR_FIELDS.map(([k, l]) => `<label>${l}<input data-cf="${side}:${k}" inputmode="decimal" value="${car[k]}"></label>`).join("")}
+      <button class="btn ghost sm" data-reset="${side}" style="margin-top:8px">Reset to example</button>
+    </details></div>`;
+  const swaps = (side, car, r) => r.swapRows.length ? `<h2 class="sec">Smart swaps · ${esc(car.name)}</h2>${r.swapRows.map(sw => `
+    <label class="swap"><input type="checkbox" data-swap="${side}:${sw.id}"${sw.on ? " checked" : ""}><span><b>${esc(sw.name)}</b>
+      <span class="save">Saves about ${lakh(sw.saving)} over ${c.years} years (${inr(sw.oem)} → ${inr(sw.alt)}, about ${sw.n.toLocaleString("en-IN", {maximumFractionDigits: 1})} times)</span>
+      <span class="pc">✓ ${esc(sw.pros)}</span><span class="pc">✕ ${esc(sw.cons)}</span></span></label>`).join("")}` : "";
+  const cheaper = diff > 0 ? B : A, same = Math.abs(diff) < 1000;
+  $("cars-body").innerHTML = `
+    <div class="verdict"><div class="hs">Over ${c.years} years at ${c.kmYear.toLocaleString("en-IN")} km a year</div>
+      <div class="hv">${same ? "They cost about the same" : `${esc(cheaper.name.replace(/ \(.*$/, ""))} costs ${lakh(Math.abs(diff))} less`}</div>
+      <div class="hs">${same ? "" : `That is ${inr(Math.abs(diff) / (c.years * 12))} a month`}</div></div>
+    <div class="cars-pair">${box("a", A, ra)}${box("b", B, rb)}</div>
+    <h2 class="sec">Where the money goes</h2>
+    <div class="sm">Car A</div>${bar(ra)}<div class="sm" style="margin-top:8px">Car B</div>${bar(rb)}
+    <div class="legend">${CAR_PARTS.map(([, l, col]) => `<span><b style="background:${col}"></b>${l}</span>`).join("")}</div>
+    <h2 class="sec">Your use</h2>
+    <div class="common">
+      <label>Years you will keep it<input data-cc="years" inputmode="numeric" value="${c.years}"></label>
+      <label>Km per year<input data-cc="kmYear" inputmode="numeric" value="${c.kmYear}"></label>
+      <label>Petrol, ₹ per litre<input data-cc="petrol" inputmode="decimal" value="${c.petrol}"></label>
+      <label>Diesel, ₹ per litre<input data-cc="diesel" inputmode="decimal" value="${c.diesel}"></label></div>
+    ${swaps("a", A, ra)}${swaps("b", B, rb)}
+    <button class="btn ghost wide" id="car-share" style="margin-top:14px">Share this comparison</button>
+    <p class="warnbox"><b>These are example figures</b> to show how the sums work, not quotes. Replace them with prices from your dealer, garage and insurer (tap <i>Edit numbers</i>). Swap savings come out of the service and repair budget. Suspension and lighting changes must stay road-legal; tell your insurer about modifications.</p>`;
+}
+function saveCars() { store.set("cars", carState); renderCars(); }
+$("cars-body").addEventListener("change", e => {
+  const el = e.target;
+  if (el.dataset.car) { const sd = el.dataset.car; carState[sd] = el.value; carState["e" + sd] = {}; carState["p" + sd] = []; buzz(); return saveCars(); }
+  if (el.dataset.cf) { const [sd, k] = el.dataset.cf.split(":"), x = k === "fuel" ? el.value : parseFloat(el.value); if (k === "fuel" || isFinite(x)) { carState["e" + sd][k] = x; buzz(); saveCars(); } return; }
+  if (el.dataset.cc) { const x = parseFloat(el.value); if (isFinite(x) && x > 0) { carState.common[el.dataset.cc] = el.dataset.cc === "years" ? Math.min(10, Math.max(1, Math.round(x))) : x; buzz(); saveCars(); } return; }
+  if (el.dataset.swap) { const [sd, id] = el.dataset.swap.split(":"), list = carState["p" + sd]; carState["p" + sd] = el.checked ? [...list, id] : list.filter(x => x !== id); buzz(el.checked ? "success" : "light"); saveCars(); }
+});
+$("cars-body").addEventListener("click", async e => {
+  const r = e.target.closest("[data-reset]");
+  if (r) { carState["e" + r.dataset.reset] = {}; buzz(); saveCars(); return; }
+  if (e.target.id !== "car-share") return;
+  buzz();
+  const c = carState.common, A = carOf("a"), B = carOf("b"), ra = CC.tco(A, c, carState.pa), rb = CC.tco(B, c, carState.pb);
+  const text = `Car cost over ${c.years} years (${c.kmYear.toLocaleString("en-IN")} km/yr)\n• ${A.name}: ${lakh(ra.total)} (${inr(ra.perKm)}/km)\n• ${B.name}: ${lakh(rb.total)} (${inr(rb.perKm)}/km)\n\nWorked out with Mechanical Garage`;
+  const S = isApp() && plugin("Share");
+  try { if (S) await S.share({title: "Car cost", text}); else if (navigator.share) await navigator.share({title: "Car cost", text}); else { await navigator.clipboard.writeText(text); toast("Copied"); } } catch (err) {}
+});
 
 /* ============================================================ bottom sheet */
 function openSheet(html) {

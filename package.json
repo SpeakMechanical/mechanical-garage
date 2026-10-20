@@ -3,7 +3,7 @@
   "private": true,
   "description": "Mechanical Garage website and Android app: MechMate calculators, CAD Viewer, selection guides and machine design notes.",
   "scripts": {
-    "test": "node --test mechmate/mechmate.test.js",
+    "test": "node --test mechmate/mechmate.test.js app/cars.test.js",
     "build:app": "node scripts/build-app.mjs",
     "sync:android": "npm run build:app && npx cap sync android"
   },

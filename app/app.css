@@ -186,3 +186,35 @@ svg{fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-l
 @keyframes slide{to{transform:translateX(var(--dx,40px))}}
 .flow{stroke-dasharray:7 5;animation:flow var(--t,1s) linear infinite}
 @keyframes flow{to{stroke-dashoffset:-12}}
+
+/* ---------- car cost ---------- */
+.car-card{display:flex;align-items:center;gap:14px;margin-top:12px;padding:16px;border-radius:var(--radius);text-decoration:none;color:#fff;background:linear-gradient(135deg,#1c7ed6,#0b3d6e);box-shadow:0 14px 30px -16px #1c7ed6}
+.car-card svg{width:56px;height:40px;flex:none;stroke:#fff;stroke-width:2.2}
+.car-card b{display:block;font-size:16px}.car-card span{font-size:13px;opacity:.85}
+.cars-pair{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.carbox{--c:var(--c-strength);padding:12px;border-radius:var(--radius);background:var(--surface);border:1px solid var(--rule)}
+.carbox.b{--c:var(--c-motion)}
+.carbox .tag2{font-family:var(--f-mono);font-size:11px;color:var(--c);letter-spacing:.1em}
+.carbox select{margin-top:6px;font-size:13.5px;padding:8px;border-radius:10px;background:var(--bg)}
+.carbox .big{font-family:var(--f-display);font-size:30px;line-height:1.1;margin-top:8px}
+.carbox .sm{font-size:12.5px;color:var(--muted)}
+.carbox details{margin-top:8px}
+.carbox summary{font-size:13px;color:var(--c);cursor:pointer}
+.carbox label{font-size:12px;margin-top:6px}
+.carbox input{font-size:15px;padding:7px 8px;border-radius:9px;font-family:var(--f-mono)}
+.verdict{padding:16px;border-radius:24px;color:#fff;background:linear-gradient(140deg,#2f9e44,#14532d);box-shadow:0 18px 36px -20px #2f9e44;margin-bottom:12px}
+.verdict .hv{font-family:var(--f-display);font-size:34px;line-height:1.1}
+.verdict .hs{font-size:13px;opacity:.9;margin-top:4px}
+.stack{display:flex;height:22px;border-radius:11px;overflow:hidden;background:var(--surface-2)}
+.stack i{display:block;height:100%;transition:width .5s var(--ease)}
+.legend{display:flex;flex-wrap:wrap;gap:6px 12px;font-size:12px;color:var(--muted);margin:8px 0 2px}
+.legend b{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:4px;vertical-align:-1px}
+.swap{display:flex;gap:10px;align-items:flex-start;padding:12px;border-radius:16px;background:var(--surface);border:1px solid var(--rule);margin-bottom:8px}
+.swap input{width:22px;height:22px;flex:none;margin-top:2px;accent-color:var(--c-make)}
+.swap b{display:block;font-size:14px;font-weight:500}
+.swap .save{font-family:var(--f-mono);color:var(--ok);font-size:13px;margin-top:3px}
+.swap .pc{font-size:12.5px;color:var(--muted);margin-top:3px}
+.common{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.common label{font-size:12px}
+.common input{font-size:15px;padding:8px;border-radius:10px;font-family:var(--f-mono)}
+.warnbox{font-size:12.5px;color:var(--muted);border:1px dashed var(--rule-strong);border-radius:14px;padding:10px 12px;margin-top:14px}

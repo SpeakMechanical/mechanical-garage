@@ -30,7 +30,7 @@ function copyTree(rel) {
 }
 SITE.forEach(copyTree);
 copy(path.join(root, "app/shell.html"), path.join(out, "index.html"));
-for (const f of ["app.css", "app.js", "embed.css", "embed.js"]) copy(path.join(root, "app", f), path.join(out, "app", f));
+for (const f of ["app.css", "app.js", "cars.js", "embed.css", "embed.js"]) copy(path.join(root, "app", f), path.join(out, "app", f));
 
 /* ---------- vendored libraries ---------- */
 const vendor = path.join(out, "vendor");
