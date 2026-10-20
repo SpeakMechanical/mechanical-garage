@@ -539,5 +539,43 @@ $("shot-btn").onclick = () => {
     .catch(err => status(`Could not save the screenshot: ${err.message || err}`, true));
 };
 
+/* ============================================================ files shared from other apps */
+// Files from WhatsApp or Gmail often arrive without a name, so recognise the format from the bytes.
+function sniff(buf) {
+  const b = new Uint8Array(buf, 0, Math.min(buf.byteLength, 4096));
+  const head = new TextDecoder("latin1").decode(b), lower = head.toLowerCase();
+  if (head.startsWith("ISO-10303-21")) return "step";
+  if (head.startsWith("glTF")) return "glb";
+  if (head.startsWith("Kaydara FBX Binary")) return "fbx";
+  if (b[0] === 0x50 && b[1] === 0x4b) return "3mf";
+  if (b[0] === 0x4d && b[1] === 0x4d) return "3ds";
+  if (lower.startsWith("ply")) return "ply";
+  if (head.startsWith("#VRML")) return "wrl";
+  if (head.includes("DBRep_DrawableShape") || head.startsWith("CASCADE Topology")) return "brep";
+  if (lower.includes("<collada")) return "dae";
+  if (lower.includes("<amf")) return "amf";
+  if (/^\s*\{/.test(head) && head.includes('"asset"')) return "gltf";
+  if (/^\s*0\s*\r?\n\s*(SECTION|section)/.test(head) || /^\s*999\s*\r?\n/.test(head)) return "dxf";
+  const lines = head.split(/\r?\n/);
+  if (lines.length > 1 && lines[0].length >= 73 && lines[0].length <= 82 && lines[0][72] === "S") return "iges";
+  if (/^\s*solid\b/i.test(head) && /facet\s+normal/i.test(head)) return "stl";
+  if (buf.byteLength >= 84) { const n = new DataView(buf).getUint32(80, true); if (84 + 50 * n === buf.byteLength) return "stl"; }
+  if (lines.some(l => /^v\s+-?[\d.]/.test(l)) && lines.some(l => /^(f|o|g|vn|vt)\s/.test(l))) return "obj";
+  return "";
+}
+(async () => {
+  if (new URLSearchParams(location.search).get("open") !== "shared") return;
+  history.replaceState(null, "", location.pathname);
+  try {
+    const db = await new Promise((ok, bad) => { const r = indexedDB.open("mechanical-garage", 1); r.onupgradeneeded = () => r.result.createObjectStore("photos"); r.onsuccess = () => ok(r.result); r.onerror = () => bad(r.error); });
+    const item = await new Promise((ok, bad) => { const q = db.transaction("photos").objectStore("photos").get("__open"); q.onsuccess = () => ok(q.result); q.onerror = () => bad(q.error); });
+    if (!item) return;
+    db.transaction("photos", "readwrite").objectStore("photos").delete("__open");
+    const ext = extOf(item.name || "") || sniff(item.buf);
+    if (!ext) { status("This file type isn't recognised. Open STEP, IGES, STL, OBJ, PLY, 3MF, glTF, FBX or DXF files.", true); return; }
+    openFile(new File([item.buf], item.name && extOf(item.name) ? item.name : `shared-file.${ext}`));
+  } catch (e) { status("Could not open the shared file: " + (e.message || e), true); }
+})();
+
 // For automated checks: window.cadViewer.open(file) and .stats().
-window.cadViewer = {open: openFile, stats: () => state.box && {box: state.box.getSize(new THREE.Vector3()).toArray(), ...volumeArea(), triangles: state.triangles, parts: state.meshes.length, kind: state.kind, dxf: model && model.userData.dxf ? {counts: model.userData.dxf.counts, length: model.userData.dxf.length} : null}};
+window.cadViewer = {open: openFile, sniff, stats: () => state.box && {box: state.box.getSize(new THREE.Vector3()).toArray(), ...volumeArea(), triangles: state.triangles, parts: state.meshes.length, kind: state.kind, dxf: model && model.userData.dxf ? {counts: model.userData.dxf.counts, length: model.userData.dxf.length} : null}};

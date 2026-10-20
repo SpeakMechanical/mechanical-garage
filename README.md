@@ -53,7 +53,15 @@ The app has its own phone interface in `app/` rather than the website's pages: a
 tap-and-hold steppers, swipe between tools of a category, and live visuals (a beam that bends,
 gears and pulleys spinning at their speed ratio, an AC tonnage gauge with running-cost bars, a bolt
 load bar); favourites, automatic history, named saves and a shareable report, all kept on the phone;
-vibration feedback, the Android back key and status-bar colours through Capacitor plugins. The
+vibration feedback, the Android back key and status-bar colours through Capacitor plugins.
+
+Also in the app: sharing a result as a branded image or a PDF (jsPDF with DejaVu Sans for ₹, ★ and
+subscripts); **Car Cost** (`app/cars.js`: compare two cars over the years you keep them, with smart
+swaps; the presets are example figures and every number is editable); Workshop notes, camera or
+gallery photos (IndexedDB), projects, and a one-file backup and restore; long-press app shortcuts
+(`android/app/src/main/res/xml/shortcuts.xml`, `mechanicalgarage://open/…` links); and "Open with
+Mechanical Garage" for CAD files from other apps, which the viewer recognises from the file's bytes
+when it arrives without a name. The
 formulas are the same tested `mechmate/mechmate-tools.js`. The CAD Viewer, guides and Machine Design
 pages are the website's, shown with an app bar (`app/embed.css`, `app/embed.js`).
 

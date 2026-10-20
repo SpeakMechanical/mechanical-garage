@@ -4,4 +4,13 @@
     <string name="title_activity_main">Mechanical Garage</string>
     <string name="package_name">com.speakmechanical.mechanicalgarage</string>
     <string name="custom_url_scheme">com.speakmechanical.mechanicalgarage</string>
+
+    <string name="sc_ac_short">AC size</string>
+    <string name="sc_ac_long">AC size and star rating</string>
+    <string name="sc_cars_short">Car cost</string>
+    <string name="sc_cars_long">Compare two cars</string>
+    <string name="sc_beam_short">Beam</string>
+    <string name="sc_beam_long">Beam deflection</string>
+    <string name="sc_viewer_short">Open CAD</string>
+    <string name="sc_viewer_long">Open a CAD file</string>
 </resources>

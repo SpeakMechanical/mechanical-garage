@@ -21,5 +21,9 @@
     document.body.prepend(bar);
     document.addEventListener("click", e => { if (e.target.closest("button,a,.tb,select")) buzz(); });
   });
-  if (P && P.App) P.App.addListener("backButton", back);
+  if (P && P.App) {
+    P.App.addListener("backButton", back);
+    // A shortcut or "Open with" file while this page is showing: let the app home handle it.
+    P.App.addListener("appUrlOpen", ev => { location.href = home + "#__url=" + encodeURIComponent(ev.url); });
+  }
 })();

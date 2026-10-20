@@ -97,6 +97,7 @@ const heroOf = (t, v) => { const c = compute(t, v), r = c.rows[heroIndex(t, c.ro
 let tab = "home", openId = null, homeDrawn = false;
 function route() {
   const h = location.hash.slice(1) || "home";
+  if (h.startsWith("__url=")) { location.replace("#home"); handleUrl(decodeURIComponent(h.slice(6))); return; }   // passed on by a website page
   if (h.startsWith("tool/")) {
     const id = h.slice(5);
     if (tool(id)) { if (!homeDrawn) { renderHome(); homeDrawn = true; } openTool(id); return; }   // fill the screen behind the tool
@@ -117,6 +118,35 @@ if (isApp() && App) App.addListener("backButton", () => {
   if (tab !== "home") return (location.hash = "#home");
   App.exitApp();
 });
+
+// Long-press shortcuts open mechanicalgarage://open/<route>; "Open with" hands us a content:// file.
+async function handleUrl(url) {
+  if (!url) return;
+  const pre = "mechanicalgarage://open/";
+  if (url.startsWith(pre)) {
+    const path = url.slice(pre.length);
+    if (path === "viewer") location.href = "viewer/index.html"; else location.hash = "#" + path;
+    return;
+  }
+  if (!/^(content|file):/.test(url)) return;
+  toast("Opening the file…");
+  try {
+    const res = await fetch(window.Capacitor.convertFileSrc(url));
+    if (!res.ok) throw new Error("the file could not be read");
+    const buf = await res.arrayBuffer();
+    const last = decodeURIComponent(url.split(/[?#]/)[0].split("/").pop() || "");
+    await photos.put("__open", {name: /\.[a-z0-9]{2,5}$/i.test(last) ? last : "", buf});
+    location.href = "viewer/index.html?open=shared";
+  } catch (e) { toast("Could not open the file: " + (e.message || e)); }
+}
+if (isApp() && App) {
+  App.addListener("appUrlOpen", e => handleUrl(e.url));
+  App.getLaunchUrl().then(r => {
+    const u = r && r.url;
+    let seen = null; try { seen = sessionStorage.getItem("mg.launch"); } catch (e) {}
+    if (u && u !== seen) { try { sessionStorage.setItem("mg.launch", u); } catch (e) {} handleUrl(u); }
+  }).catch(() => {});
+}
 
 /* ============================================================ tiles */
 function tileHtml(t, opts = {}) {

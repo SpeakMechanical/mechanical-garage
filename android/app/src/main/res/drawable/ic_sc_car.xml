@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- App shortcut icon: white line drawing on the orange accent. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="48dp" android:height="48dp" android:viewportWidth="48" android:viewportHeight="48">
+    <path android:fillColor="#C9481A" android:pathData="M24,0a24,24 0 1 0 0.01,0z" />
+    <path android:strokeColor="#FFFFFF" android:strokeWidth="2.4" android:strokeLineCap="round" android:strokeLineJoin="round" android:fillColor="#00000000" android:pathData="M11,28v-4l3,-1 4,-6h12l5,6 3,1v4M16,28a2.5,2.5 0 1 0 5,0a2.5,2.5 0 1 0 -5,0M27,28a2.5,2.5 0 1 0 5,0a2.5,2.5 0 1 0 -5,0" />
+</vector>

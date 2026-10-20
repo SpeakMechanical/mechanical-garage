@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Long-press the app icon for these. Each opens a mechanicalgarage://open/... link that app.js routes. -->
+<shortcuts xmlns:android="http://schemas.android.com/apk/res/android">
+    <shortcut android:shortcutId="ac" android:enabled="true" android:icon="@drawable/ic_sc_ac"
+        android:shortcutShortLabel="@string/sc_ac_short" android:shortcutLongLabel="@string/sc_ac_long">
+        <intent android:action="android.intent.action.VIEW" android:data="mechanicalgarage://open/tool/ac"
+            android:targetPackage="com.speakmechanical.mechanicalgarage" android:targetClass="com.speakmechanical.mechanicalgarage.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="cars" android:enabled="true" android:icon="@drawable/ic_sc_car"
+        android:shortcutShortLabel="@string/sc_cars_short" android:shortcutLongLabel="@string/sc_cars_long">
+        <intent android:action="android.intent.action.VIEW" android:data="mechanicalgarage://open/cars"
+            android:targetPackage="com.speakmechanical.mechanicalgarage" android:targetClass="com.speakmechanical.mechanicalgarage.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="beam" android:enabled="true" android:icon="@drawable/ic_sc_beam"
+        android:shortcutShortLabel="@string/sc_beam_short" android:shortcutLongLabel="@string/sc_beam_long">
+        <intent android:action="android.intent.action.VIEW" android:data="mechanicalgarage://open/tool/beam"
+            android:targetPackage="com.speakmechanical.mechanicalgarage" android:targetClass="com.speakmechanical.mechanicalgarage.MainActivity" />
+    </shortcut>
+    <shortcut android:shortcutId="viewer" android:enabled="true" android:icon="@drawable/ic_sc_cad"
+        android:shortcutShortLabel="@string/sc_viewer_short" android:shortcutLongLabel="@string/sc_viewer_long">
+        <intent android:action="android.intent.action.VIEW" android:data="mechanicalgarage://open/viewer"
+            android:targetPackage="com.speakmechanical.mechanicalgarage" android:targetClass="com.speakmechanical.mechanicalgarage.MainActivity" />
+    </shortcut>
+</shortcuts>
