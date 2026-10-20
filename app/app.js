@@ -128,9 +128,12 @@ function tileHtml(t, opts = {}) {
 }
 function rowHtml(item, k, kind) {
   const t = tool(item.tool), when = ago(item.at);
-  return `<li class="row press" data-k="${k}" data-kind="${kind}"><span class="ic cat-${t.cat}" style="--c:var(--c-${t.cat})">${icon(t.id)}</span>
-    <span class="tx"><b>${esc(item.name || t.name)}</b><span>${esc(item.hero[0])}: ${esc(item.hero[1])}</span></span>
-    <span class="end">${when}</span>${kind === "saved" ? `<button class="del" data-del="${k}" aria-label="Delete">${icon("trash")}</button>` : ""}</li>`;
+  const ph = kind === "saved" && item.photos && item.photos[0];
+  const lead = ph ? `<img class="thumb" data-ph="${ph}" alt="">` : `<span class="ic cat-${t.cat}" style="--c:var(--c-${t.cat})">${icon(t.id)}</span>`;
+  const sub2 = kind === "saved" && item.note ? item.note : `${item.hero[0]}: ${item.hero[1]}`;
+  return `<li class="row press" data-k="${k}" data-kind="${kind}">${lead}
+    <span class="tx"><b>${esc(item.name || t.name)}</b><span>${esc(sub2)}</span></span>
+    <span class="end">${kind === "saved" ? esc(item.hero[1]) + "<br>" : ""}${when}</span></li>`;
 }
 function ago(ts) {
   const s = (Date.now() - ts) / 1000;
@@ -212,23 +215,173 @@ function renderWorkshop() {
     body.innerHTML = hist.length ? `<ul class="list">${hist.map((x, k) => rowHtml(x, k, "history")).join("")}</ul>
       <p class="blurb">The last ${hist.length} calculations are kept on this phone.</p>` : `<div class="empty">Calculations you make appear here automatically.</div>`;
   } else {
-    body.innerHTML = saved.length ? `<ul class="list">${saved.map((x, k) => rowHtml(x, k, "saved")).join("")}</ul>
-      <button class="btn ghost wide" id="ws-report" style="margin-top:14px">Share a PDF report of everything saved</button>`
-      : `<div class="empty">Press <b>Save to workshop</b> in any tool to keep a named calculation.</div>`;
-    if (saved.length) $("ws-report").onclick = shareReport;
+    const projects = projectList(), shown = saved.map((x, k) => [x, k]).filter(([x]) => wsProject === "all" || projectOf(x) === wsProject);
+    body.innerHTML = saved.length ? `
+      <div class="chips" style="margin-top:0">${[["all", "All"], ...projects.map(p => [p, p])].map(([k, l]) => `<button class="chip" data-proj="${esc(k)}" aria-pressed="${k === wsProject}">${esc(l)}</button>`).join("")}</div>
+      <ul class="list">${shown.map(([x, k]) => rowHtml(x, k, "saved")).join("")}</ul>
+      <button class="btn ghost wide" id="ws-report" style="margin-top:14px">Share a PDF of ${wsProject === "all" ? "everything saved" : "“" + esc(wsProject) + "”"}</button>`
+      : `<div class="empty">Press <b>Save to workshop</b> in any tool to keep a named calculation, with notes and photos.</div>`;
+    if (saved.length) {
+      $("ws-report").onclick = () => shareReport(shown.map(([x]) => x), wsProject === "all" ? "Mechanical Garage report" : wsProject);
+      body.querySelectorAll("[data-proj]").forEach(b => b.onclick = () => { buzz(); wsProject = b.dataset.proj; renderWorkshop(); });
+      loadThumbs(body);
+    }
   }
-  body.querySelectorAll(".row").forEach(r => r.onclick = e => {
-    if (e.target.closest(".del")) { buzz("medium"); saved.splice(+e.target.closest(".del").dataset.del, 1); store.set("saved", saved); renderWorkshop(); toast("Deleted"); return; }
-    buzz(); openItem((r.dataset.kind === "saved" ? saved : hist)[+r.dataset.k]);
+  body.querySelectorAll(".row").forEach(r => r.onclick = () => {
+    buzz();
+    if (r.dataset.kind === "saved") itemSheet(+r.dataset.k); else openItem(hist[+r.dataset.k]);
   });
 }
-async function shareReport() {
+let wsProject = "all";
+const projectOf = x => x.project || "General";
+const projectList = () => [...new Set(saved.map(projectOf))].sort((a, b) => a === "General" ? -1 : b === "General" ? 1 : a.localeCompare(b));
+async function loadThumbs(root) {
+  for (const img of root.querySelectorAll("img[data-ph]")) { try { const d = await photos.get(img.dataset.ph); if (d) img.src = d; } catch (e) {} }
+}
+async function shareReport(items = saved, title = "Mechanical Garage report") {
   toast("Making the PDF…");
   try {
-    const pdf = await makePdf("Mechanical Garage report", saved.map(x => ({name: x.name, tool: x.tool, at: x.at, rows: x.rows, note: x.note, photos: x.photos})));
-    await saveFile("Mechanical Garage report.pdf", "application/pdf", pdf);
+    const list = [];
+    for (const x of items) list.push({name: x.name, tool: x.tool, at: x.at, rows: x.rows, note: x.note, photos: (await Promise.all((x.photos || []).map(id => photos.get(id)))).filter(Boolean)});
+    const pdf = await makePdf(title, list);
+    await saveFile(`${title.replace(/[^\w -]+/g, "").trim() || "Report"}.pdf`, "application/pdf", pdf);
     buzz("success");
   } catch (e) { toast("Could not make the PDF: " + (e.message || e)); }
+}
+
+/* ---------- photos, kept in IndexedDB (localStorage is too small for images) ---------- */
+const photos = (() => {
+  let dbp = null;
+  const open = () => dbp || (dbp = new Promise((ok, bad) => {
+    const r = indexedDB.open("mechanical-garage", 1);
+    r.onupgradeneeded = () => r.result.createObjectStore("photos");
+    r.onsuccess = () => ok(r.result); r.onerror = () => bad(r.error);
+  }));
+  const run = async (mode, fn) => { const db = await open(); return new Promise((ok, bad) => { const t = db.transaction("photos", mode), req = fn(t.objectStore("photos")); t.oncomplete = () => ok(req && req.result); t.onerror = () => bad(t.error); }); };
+  return {get: k => run("readonly", s => s.get(k)), put: (k, v) => run("readwrite", s => s.put(v, k)), del: k => run("readwrite", s => s.delete(k)),
+    keys: () => run("readonly", s => s.getAllKeys())};
+})();
+// Shrink a camera photo to at most 1280 px and JPEG, so dozens fit comfortably.
+async function photoFromFile(file) {
+  const bmp = await createImageBitmap(file), k = Math.min(1, 1280 / Math.max(bmp.width, bmp.height));
+  const cv = document.createElement("canvas"); cv.width = Math.round(bmp.width * k); cv.height = Math.round(bmp.height * k);
+  cv.getContext("2d").drawImage(bmp, 0, 0, cv.width, cv.height);
+  const id = "ph" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  await photos.put(id, cv.toDataURL("image/jpeg", 0.8));
+  return id;
+}
+const pickImage = capture => new Promise(ok => {
+  const inp = document.createElement("input"); inp.type = "file"; inp.accept = "image/*"; if (capture) inp.capture = "environment";
+  inp.onchange = () => ok(inp.files[0] || null); inp.click();
+});
+
+/* ---------- save sheet and saved-item sheet ---------- */
+function projectField(current) {
+  const list = projectList();
+  if (!list.includes("General")) list.unshift("General");
+  return `<label>Project<select id="it-proj">${list.map(p => `<option${p === current ? " selected" : ""}>${esc(p)}</option>`).join("")}<option value="__new">New project…</option></select></label>
+    <label id="it-newwrap" hidden>New project name<input id="it-new" type="text" maxlength="40" placeholder="e.g. WAAM printer"></label>`;
+}
+function wireProjectField() {
+  $("it-proj").onchange = () => { $("it-newwrap").hidden = $("it-proj").value !== "__new"; if (!$("it-newwrap").hidden) $("it-new").focus(); };
+}
+const chosenProject = () => $("it-proj").value === "__new" ? ($("it-new").value.trim() || "General") : $("it-proj").value;
+function photoStrip(ids) {
+  return `<div class="photos">${ids.map(id => `<span class="ph"><img data-ph="${id}" alt=""><button data-rmph="${id}" aria-label="Remove photo">×</button></span>`).join("")}
+    <button class="addph" data-addph="cam" type="button">📷<small>Camera</small></button><button class="addph" data-addph="gal" type="button">🖼<small>Gallery</small></button></div>`;
+}
+function wirePhotos(ids, rerender) {
+  const sh = $("sheet");
+  loadThumbs(sh);
+  sh.querySelectorAll("[data-addph]").forEach(b => b.onclick = async () => {
+    buzz(); const f = await pickImage(b.dataset.addph === "cam");
+    if (!f) return;
+    try { ids.push(await photoFromFile(f)); rerender(); buzz("success"); } catch (e) { toast("Could not add the photo"); }
+  });
+  sh.querySelectorAll("[data-rmph]").forEach(b => b.onclick = () => { buzz("medium"); const i = ids.indexOf(b.dataset.rmph); if (i >= 0) ids.splice(i, 1); photos.del(b.dataset.rmph).catch(() => {}); rerender(); });
+}
+function saveSheet() {
+  const t = tool(openId), draft = {name: t.name, project: wsProject !== "all" ? wsProject : "General", note: "", photos: []};
+  let first = true;
+  const draw = () => {
+    if (!first) Object.assign(draft, {name: $("sv-name").value, note: $("sv-note").value, project: chosenProject()});
+    first = false;
+    openSheet(`<h3>Save to workshop</h3>
+      <label>Name<input id="sv-name" type="text" value="${esc(draft.name)}" maxlength="60"></label>
+      ${projectField(draft.project)}
+      <label>Note<textarea id="sv-note" rows="3" placeholder="What is this for? Supplier, part number, decisions…">${esc(draft.note)}</textarea></label>
+      ${photoStrip(draft.photos)}
+      <button class="btn primary wide" id="sv-ok" style="margin-top:12px">Save</button>`);
+    wireProjectField(); wirePhotos(draft.photos, draw);
+    $("sv-ok").onclick = () => {
+      const v = vals[openId], c = compute(t, v), hero = c.rows[heroIndex(t, c.rows)] || ["", ""];
+      saved.unshift({id: "s" + Date.now().toString(36), name: $("sv-name").value.trim() || t.name, project: chosenProject(), note: $("sv-note").value.trim(), photos: draft.photos,
+        tool: openId, values: {...v}, hero: [plain(hero[0]), plain(hero[1])], rows: c.rows.map(x => [plain(x[0]), plain(x[1]), plain(x[3] || "")]), at: Date.now()});
+      store.set("saved", saved);
+      closeSheet(); buzz("success"); toast("Saved to your workshop");
+    };
+  };
+  draw();
+}
+function itemSheet(k) {
+  const it = saved[k];
+  if (!it) return;
+  it.photos = it.photos || [];
+  let first = true;
+  const draw = () => {
+    if (!first) { it.name = $("it-name").value.trim() || it.name; it.note = $("it-note").value.trim(); it.project = chosenProject(); store.set("saved", saved); }
+    first = false;
+    openSheet(`<h3>${esc(it.name)}</h3>
+      <p class="blurb" style="margin:-6px 0 10px">${esc(tool(it.tool).name)} · ${esc(it.hero[0])}: <b>${esc(it.hero[1])}</b></p>
+      <label>Name<input id="it-name" type="text" value="${esc(it.name)}" maxlength="60"></label>
+      ${projectField(projectOf(it))}
+      <label>Note<textarea id="it-note" rows="3">${esc(it.note || "")}</textarea></label>
+      ${photoStrip(it.photos)}
+      <div class="grid-btns"><button class="btn primary" id="it-open">Open in tool</button><button class="btn ghost" id="it-pdf">Share PDF</button><button class="btn ghost" id="it-del">Delete</button></div>`);
+    wireProjectField(); wirePhotos(it.photos, draw);
+    const keep = () => { it.name = $("it-name").value.trim() || it.name; it.note = $("it-note").value.trim(); it.project = chosenProject(); store.set("saved", saved); };
+    ["it-name", "it-note", "it-proj", "it-new"].forEach(id => $(id).addEventListener("change", keep));
+    $("it-open").onclick = () => { keep(); closeSheet(); openItem(it); };
+    $("it-pdf").onclick = () => { keep(); closeSheet(); shareReport([it], it.name); };
+    $("it-del").onclick = () => {
+      buzz("medium"); saved.splice(saved.indexOf(it), 1); store.set("saved", saved);
+      it.photos.forEach(id => photos.del(id).catch(() => {}));
+      closeSheet(); renderWorkshop(); toast("Deleted");
+    };
+  };
+  draw();
+  $("scrim").onclick = () => { if ($("it-name")) { it.name = $("it-name").value.trim() || it.name; it.note = $("it-note").value.trim(); it.project = chosenProject(); store.set("saved", saved); } closeSheet(); renderWorkshop(); $("scrim").onclick = closeSheet; };
+}
+
+/* ---------- backup and restore ---------- */
+async function backup() {
+  toast("Preparing the backup…");
+  const ph = {};
+  for (const x of saved) for (const id of x.photos || []) { const d = await photos.get(id); if (d) ph[id] = d; }
+  const keys = ["favs", "history", "saved", "vals", "cars", "units", "haptics", "material"];
+  const data = {app: "mechanical-garage", version: 1, at: new Date().toISOString(), store: Object.fromEntries(keys.map(k => [k, store.get(k, null)])), photos: ph};
+  await saveFile(`mechanical-garage-backup-${new Date().toISOString().slice(0, 10)}.json`, "application/json", JSON.stringify(data));
+  buzz("success");
+}
+async function restore() {
+  const inp = document.createElement("input"); inp.type = "file"; inp.accept = ".json,application/json";
+  inp.onchange = async () => {
+    const f = inp.files[0]; if (!f) return;
+    try {
+      const data = JSON.parse(await f.text());
+      if (data.app !== "mechanical-garage" || !data.store) throw new Error("not a Mechanical Garage backup");
+      const n = (data.store.saved || []).length;
+      openSheet(`<h3>Restore backup?</h3><p class="blurb">From ${new Date(data.at).toLocaleString()}: ${n} saved calculation${n === 1 ? "" : "s"} and ${Object.keys(data.photos || {}).length} photos. This replaces what is on this phone now.</p>
+        <button class="btn primary wide" id="rs-ok">Replace and restore</button><button class="btn ghost wide" id="rs-no" style="margin-top:10px">Cancel</button>`);
+      $("rs-no").onclick = closeSheet;
+      $("rs-ok").onclick = async () => {
+        for (const [k, v] of Object.entries(data.store)) if (v !== null) store.set(k, v);
+        for (const [id, d] of Object.entries(data.photos || {})) await photos.put(id, d);
+        buzz("success"); location.reload();
+      };
+    } catch (e) { toast("Could not read the backup: " + (e.message || e)); }
+  };
+  inp.click();
 }
 
 /* ---------- PDF reports (jsPDF with DejaVu Sans, which has ₹ ★ Δ √ ≥ and subscripts) ---------- */
@@ -386,6 +539,8 @@ function settings() {
     <div class="opt"><span>Theme</span><div class="pills">${pill("th", "system", theme, "Auto")}${pill("th", "light", theme, "Light")}${pill("th", "dark", theme, "Dark")}</div></div>
     <div class="opt"><span>Vibration</span><button class="switch" id="s-hap" role="switch" aria-checked="${haptics}" aria-label="Vibration"></button></div>
     <div class="opt"><span>History</span><button class="btn ghost sm" id="s-clear">Clear ${hist.length}</button></div>
+    <div class="opt"><span>Backup</span><div class="pills"><button id="s-backup">Back up</button><button id="s-restore">Restore</button></div></div>
+    <p class="about">Back up saves everything (favourites, history, saved calculations, notes, photos, car comparisons) to one file; the share sheet can put it on Google Drive. Restore reads it back on any phone.</p>
     <p class="about">Mechanical Garage · the calculations are MechMate's, checked against hand calculations, published tables and standards. Results are for first sizing; check final designs against codes and supplier data. Everything you save stays on this phone.</p>`);
   const s = $("sheet");
   s.querySelectorAll("[data-u]").forEach(b => b.onclick = () => { buzz(); sys = b.dataset.u; store.set("units", sys); settings(); route(); });
@@ -397,6 +552,8 @@ function settings() {
   });
   $("s-hap").onclick = () => { haptics = !haptics; store.set("haptics", haptics); buzz(); settings(); };
   $("s-clear").onclick = () => { buzz("medium"); hist = []; store.set("history", hist); settings(); route(); toast("History cleared"); };
+  $("s-backup").onclick = () => { buzz(); closeSheet(); backup().catch(e => toast("Backup failed: " + (e.message || e))); };
+  $("s-restore").onclick = () => { buzz(); closeSheet(); restore(); };
 }
 
 /* ============================================================ tool screen */
@@ -670,17 +827,7 @@ async function resultCard(t, c) {
   ctx.textAlign = "right"; ctx.fillText(new Date().toLocaleDateString(undefined, {day: "numeric", month: "short", year: "numeric"}), W - 90, H - 70);
   return cv.toDataURL("image/png");
 }
-$("t-save").onclick = () => {
-  buzz();
-  openSheet(`<h3>Save to workshop</h3><label>Name<input id="sv-name" type="text" value="${esc(tool(openId).name)}" maxlength="60"></label><button class="btn primary wide" id="sv-ok">Save</button>`);
-  setTimeout(() => { $("sv-name").focus(); $("sv-name").select(); }, 250);
-  $("sv-ok").onclick = () => {
-    const t = tool(openId), v = vals[openId], c = compute(t, v), hero = c.rows[heroIndex(t, c.rows)] || ["", ""];
-    saved.unshift({name: $("sv-name").value.trim() || t.name, tool: openId, values: {...v}, hero: [plain(hero[0]), plain(hero[1])], rows: c.rows.map(x => [plain(x[0]), plain(x[1]), plain(x[3] || "")]), at: Date.now()});
-    store.set("saved", saved);
-    closeSheet(); buzz("success"); toast("Saved to your workshop");
-  };
-};
+$("t-save").onclick = () => { buzz(); saveSheet(); };
 let sx = null, sy = 0;
 $("tool").addEventListener("touchstart", e => { if (e.target.closest("input,select,.stepper,.pills,.calc")) { sx = null; return; } sx = e.touches[0].clientX; sy = e.touches[0].clientY; }, {passive: true});
 $("tool").addEventListener("touchend", e => {
@@ -919,5 +1066,7 @@ const VISUALS = {
 
 /* ============================================================ start */
 // Pages opened from the app (viewer, guides) come back with #home etc.; a first launch lands on Home.
+// For automated checks.
+window.mgDebug = {photos, photoFromFile, saved: () => saved};
 route();
 })();
